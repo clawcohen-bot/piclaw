@@ -1,0 +1,9 @@
+packages:
+  - "apps/*"
+  - "libs/*"
+allowBuilds:
+  '@google/genai': true
+  esbuild: true
+  koffi: true
+  nx: true
+  protobufjs: true

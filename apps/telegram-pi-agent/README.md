@@ -1,0 +1,110 @@
+# Telegram Pi Agent
+
+Telegram-controlled Pi SDK agent with repo-local Pi config.
+
+## Isolation
+
+This copy does not use `~/.pi`.
+
+Pi data lives inside this repo:
+
+```txt
+data/pi/
+  auth.json
+  settings.json
+  models.json
+  sessions/
+  skills/
+  prompts/
+  themes/
+  extensions/
+```
+
+Bot runtime data lives here:
+
+```txt
+data/telegram-pi-agent/
+  audit.jsonl
+  short-memory/
+  memory/
+```
+
+`data/` is gitignored.
+
+## Config
+
+Create repo-local config:
+
+```bash
+mkdir -p config
+cp config/telegram-pi-agent.example.json config/telegram-pi-agent.json
+```
+
+Secrets stay in `.env`:
+
+```bash
+TELEGRAM_BOT_TOKEN=replace-me
+```
+
+Edit:
+
+```json
+{
+  "telegram": {
+    "allowedUserIds": [123456789]
+  },
+  "rootPath": ".",
+  "server": {
+    "services": [],
+    "logFiles": []
+  },
+  "voice": {
+    "whisperCommand": "whisper-cli",
+    "whisperModel": "data/voice/ggml-base.en.bin",
+    "ffmpegCommand": "ffmpeg",
+    "extraArgs": ["--no-prints"],
+    "timeoutMs": 120000
+  }
+}
+```
+
+`rootPath` must be inside this repo.
+
+## Auth
+
+Put Pi auth in:
+
+```txt
+data/pi/auth.json
+```
+
+Or use provider env vars in `.env` if Pi supports them.
+
+## Run
+
+```bash
+pnpm install
+pnpm nx serve telegram-pi-agent
+```
+
+Hot reload:
+
+```bash
+pnpm telegram-pi-agent:dev
+```
+
+## Commands
+
+- `/start`
+- `/remember global <text>`
+- `/remember server <text>`
+- `/memory`
+- `/forget`
+- `/status`
+- `/reload`
+- `/cancel`
+- Voice message
+- `/server-status`
+- `/server-services`
+- `/server-logs <name-or-path>`
+- `/server-restart <service>`

@@ -1,0 +1,17 @@
+export const helpText = [
+  'Piclaw Telegram Pi Agent',
+  '',
+  'Commands:',
+  '/remember global <text>',
+  '/remember server <text>',
+  '/memory - show memory',
+  '/forget - clear short memory',
+  '/status - bot status',
+  '/reload - restart bot and load new code/config',
+  '/cancel - cancel active task',
+  'Voice message - transcribe with Whisper and run as task',
+  '/server-status',
+  '/server-services',
+  '/server-logs <name>',
+  '/server-restart <service>',
+].join('\n');

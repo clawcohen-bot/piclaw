@@ -1,0 +1,20 @@
+{
+  "name": "piclaw",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "telegram-pi-agent": "nx serve telegram-pi-agent",
+    "telegram-pi-agent:dev": "tsx watch --env-file=.env apps/telegram-pi-agent/src/main.ts"
+  },
+  "dependencies": {
+    "@earendil-works/pi-coding-agent": "^0.75.3",
+    "telegraf": "^4.16.3",
+    "typebox": "^1.1.38"
+  },
+  "devDependencies": {
+    "@types/node": "^25.9.0",
+    "nx": "^22.7.2",
+    "tsx": "^4.22.2",
+    "typescript": "^6.0.3"
+  }
+}

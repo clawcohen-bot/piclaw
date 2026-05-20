@@ -1,0 +1,16 @@
+[Unit]
+Description=Telegram Pi Agent
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/absolute/path/to/piclaw-isolated
+Environment=NODE_ENV=production
+EnvironmentFile=/absolute/path/to/piclaw-isolated/.env
+ExecStart=pnpm nx serve telegram-pi-agent
+Restart=always
+RestartSec=5
+User=replace-me
+
+[Install]
+WantedBy=multi-user.target

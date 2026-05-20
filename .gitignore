@@ -1,0 +1,12 @@
+
+.nx/installation
+.nx/cache
+.nx/workspace-data
+.nx/self-healing
+.env
+.env.*
+!.env.example
+node_modules
+config/telegram-pi-agent.json
+.data/
+data/
