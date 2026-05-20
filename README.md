@@ -66,6 +66,56 @@ For development:
 pnpm telegram-pi-agent:dev
 ```
 
+## Run with systemd
+
+Create a service file:
+
+```bash
+sudo nano /etc/systemd/system/piclaw.service
+```
+
+Paste this:
+
+```ini
+[Unit]
+Description=Piclaw Telegram Pi Agent
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=shmulserver
+WorkingDirectory=/home/shmulserver/piclaw-isolated
+Environment=NODE_ENV=production
+Environment=PATH=/home/shmulserver/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+ExecStart=/home/shmulserver/.nvm/versions/node/v24.14.0/bin/pnpm nx serve telegram-pi-agent
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Reload systemd and start the bot:
+
+```bash
+sudo systemctl daemon-reload
+sudo systemctl enable --now piclaw
+```
+
+Check status and logs:
+
+```bash
+sudo systemctl status piclaw
+sudo journalctl -u piclaw -f
+```
+
+Restart after code or config changes:
+
+```bash
+sudo systemctl restart piclaw
+```
+
 ## More docs
 
 Telegram bot details are in:
