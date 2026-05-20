@@ -27,7 +27,7 @@ export type AppConfig = {
   voice: VoiceConfig;
 };
 
-const defaultConfigPath = join(process.cwd(), 'config', 'telegram-pi-agent.json');
+const defaultConfigPath = join(process.cwd(), 'config', 'pi-agent.json');
 
 export const getConfigPath = (): string => defaultConfigPath;
 

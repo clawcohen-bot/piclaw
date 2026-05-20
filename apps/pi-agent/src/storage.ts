@@ -1,7 +1,7 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
-export const getAppDir = (): string => join(process.cwd(), 'data', 'telegram-pi-agent');
+export const getAppDir = (): string => join(process.cwd(), 'data', 'pi-agent');
 
 export const getPiAgentDir = (): string => join(process.cwd(), 'data', 'pi');
 

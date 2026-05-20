@@ -42,7 +42,7 @@ export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
   });
 
   const context = [
-    '# Telegram Pi Agent Context',
+    '# Pi Agent Context',
     '',
     `Root path: ${input.rootPath}`,
     '',

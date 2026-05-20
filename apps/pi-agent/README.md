@@ -1,4 +1,4 @@
-# Telegram Pi Agent
+# Pi Agent
 
 Telegram-controlled Pi SDK agent with repo-local Pi config.
 
@@ -23,7 +23,7 @@ data/pi/
 Bot runtime data lives here:
 
 ```txt
-data/telegram-pi-agent/
+data/pi-agent/
   audit.jsonl
   short-memory/
   memory/
@@ -37,7 +37,7 @@ Create repo-local config:
 
 ```bash
 mkdir -p config
-cp config/telegram-pi-agent.example.json config/telegram-pi-agent.json
+cp config/pi-agent.example.json config/pi-agent.json
 ```
 
 Secrets stay in `.env`:
@@ -84,13 +84,13 @@ Or use provider env vars in `.env` if Pi supports them.
 
 ```bash
 pnpm install
-pnpm nx serve telegram-pi-agent
+pnpm nx serve pi-agent
 ```
 
 Hot reload:
 
 ```bash
-pnpm telegram-pi-agent:dev
+pnpm pi-agent:dev
 ```
 
 ## Commands

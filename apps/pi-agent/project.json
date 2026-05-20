@@ -1,0 +1,19 @@
+{
+  "name": "pi-agent",
+  "projectType": "application",
+  "sourceRoot": "apps/pi-agent/src",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'while true; do tsx --env-file=.env apps/pi-agent/src/main.ts; code=$?; if [ \"$code\" != \"75\" ]; then exit \"$code\"; fi; echo Reloading pi-agent...; done'"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/pi-agent/tsconfig.json --noEmit"
+      }
+    }
+  }
+}

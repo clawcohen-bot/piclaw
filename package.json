@@ -3,8 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "telegram-pi-agent": "nx serve telegram-pi-agent",
-    "telegram-pi-agent:dev": "tsx watch --env-file=.env apps/telegram-pi-agent/src/main.ts"
+    "pi-agent": "nx serve pi-agent",
+    "pi-agent:dev": "tsx watch --env-file=.env apps/pi-agent/src/main.ts"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.75.3",

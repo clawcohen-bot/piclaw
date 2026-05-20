@@ -14,7 +14,7 @@ Runtime files are kept in:
 
 ```txt
 data/pi/                    # Pi auth, settings, sessions
-data/telegram-pi-agent/    # bot memory, audit log, queues
+data/pi-agent/    # bot memory, audit log, queues
 data/voice/                 # optional voice model
 ```
 
@@ -25,7 +25,7 @@ data/voice/                 # optional voice model
 ```bash
 pnpm install
 cp .env.example .env
-cp config/telegram-pi-agent.example.json config/telegram-pi-agent.json
+cp config/pi-agent.example.json config/pi-agent.json
 ```
 
 Set your Telegram bot token in `.env`:
@@ -34,7 +34,7 @@ Set your Telegram bot token in `.env`:
 TELEGRAM_BOT_TOKEN=replace-me
 ```
 
-Edit `config/telegram-pi-agent.json` and set your Telegram user id:
+Edit `config/pi-agent.json` and set your Telegram user id:
 
 ```json
 {
@@ -57,7 +57,7 @@ Or use provider env vars in `.env`, if your Pi provider supports them.
 ## Run
 
 ```bash
-pnpm nx serve telegram-pi-agent
+pnpm nx serve pi-agent
 ```
 
 The `/reload` command works here too. The bot exits with reload code `75`, and the Nx serve command starts it again.
@@ -65,7 +65,7 @@ The `/reload` command works here too. The bot exits with reload code `75`, and t
 For development:
 
 ```bash
-pnpm telegram-pi-agent:dev
+pnpm pi-agent:dev
 ```
 
 ## Run with systemd
@@ -80,7 +80,7 @@ Paste this:
 
 ```ini
 [Unit]
-Description=Piclaw Telegram Pi Agent
+Description=Piclaw Pi Agent
 After=network-online.target
 Wants=network-online.target
 
@@ -90,7 +90,7 @@ User=shmulserver
 WorkingDirectory=/home/shmulserver/piclaw-isolated
 Environment=NODE_ENV=production
 Environment=PATH=/home/shmulserver/.nvm/versions/node/v24.14.0/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
-ExecStart=/home/shmulserver/.nvm/versions/node/v24.14.0/bin/pnpm nx serve telegram-pi-agent
+ExecStart=/home/shmulserver/.nvm/versions/node/v24.14.0/bin/pnpm nx serve pi-agent
 Restart=always
 RestartSec=5
 
@@ -123,5 +123,5 @@ sudo systemctl restart piclaw
 Telegram bot details are in:
 
 ```txt
-apps/telegram-pi-agent/README.md
+apps/pi-agent/README.md
 ```

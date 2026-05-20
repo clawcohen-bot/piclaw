@@ -7,6 +7,6 @@
 .env.*
 !.env.example
 node_modules
-config/telegram-pi-agent.json
+config/pi-agent.json
 .data/
 data/

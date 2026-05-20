@@ -1,5 +1,5 @@
 export const helpText = [
-  'Piclaw Telegram Pi Agent',
+  'Piclaw Pi Agent',
   '',
   'Commands:',
   '/remember global <text>',
