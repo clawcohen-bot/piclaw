@@ -60,6 +60,8 @@ Or use provider env vars in `.env`, if your Pi provider supports them.
 pnpm nx serve telegram-pi-agent
 ```
 
+The `/reload` command works here too. The bot exits with reload code `75`, and the Nx serve command starts it again.
+
 For development:
 
 ```bash

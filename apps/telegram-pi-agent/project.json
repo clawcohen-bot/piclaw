@@ -6,7 +6,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "tsx --env-file=.env apps/telegram-pi-agent/src/main.ts"
+        "command": "bash -c 'while true; do tsx --env-file=.env apps/telegram-pi-agent/src/main.ts; code=$?; if [ \"$code\" != \"75\" ]; then exit \"$code\"; fi; echo Reloading telegram-pi-agent...; done'"
       }
     },
     "typecheck": {

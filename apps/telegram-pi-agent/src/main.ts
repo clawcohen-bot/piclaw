@@ -26,6 +26,7 @@ const rootMemoryId = 'server-root';
 
 const typingIntervalMs = 4000;
 const reloadExitDelayMs = 500;
+const reloadExitCode = 75;
 
 type TypingContext = {
   sendChatAction: (action: 'typing') => Promise<unknown>;
@@ -105,7 +106,7 @@ const main = async (): Promise<void> => {
     await ctx.reply('Reloading bot...');
     setTimeout(() => {
       bot.stop('reload');
-      process.exit(0);
+      process.exit(reloadExitCode);
     }, reloadExitDelayMs);
   });
 
