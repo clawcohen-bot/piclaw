@@ -1,12 +1,12 @@
 import { appendFile, readFile, writeFile } from 'node:fs/promises';
 
-import { ensureParentDir, getGlobalMemoryPath, getShortMemoryPath, getWorkspaceMemoryPath } from './storage';
+import { ensureParentDir, getGlobalMemoryPath, getRootMemoryPath, getShortMemoryPath } from './storage';
 
 export type ShortMemoryMessage = {
   role: 'user' | 'bot';
   text: string;
   timestamp: string;
-  workspaceId: string;
+  rootId: string;
   messageId: number;
 };
 
@@ -22,14 +22,14 @@ const isShortMemoryMessage = (value: unknown): value is ShortMemoryMessage => {
     (value.role === 'user' || value.role === 'bot') &&
     typeof value.text === 'string' &&
     typeof value.timestamp === 'string' &&
-    typeof value.workspaceId === 'string' &&
+    typeof value.rootId === 'string' &&
     typeof value.messageId === 'number'
   );
 };
 
-export const readShortMemory = async (chatId: number, workspaceId: string): Promise<ShortMemoryMessage[]> => {
+export const readShortMemory = async (chatId: number, rootId: string): Promise<ShortMemoryMessage[]> => {
   try {
-    const content = await readFile(getShortMemoryPath(chatId, workspaceId), 'utf8');
+    const content = await readFile(getShortMemoryPath(chatId, rootId), 'utf8');
     const parsed: unknown = JSON.parse(content);
     if (!Array.isArray(parsed)) {
       return [];
@@ -45,32 +45,32 @@ export const addShortMemoryMessage = async (
   chatId: number,
   message: ShortMemoryMessage,
 ): Promise<void> => {
-  const path = getShortMemoryPath(chatId, message.workspaceId);
-  const current = await readShortMemory(chatId, message.workspaceId);
+  const path = getShortMemoryPath(chatId, message.rootId);
+  const current = await readShortMemory(chatId, message.rootId);
   const next = [...current, message].slice(-15);
 
   await ensureParentDir(path);
   await writeFile(path, JSON.stringify(next, null, 2), 'utf8');
 };
 
-export const clearShortMemory = async (chatId: number, workspaceId: string): Promise<void> => {
-  const path = getShortMemoryPath(chatId, workspaceId);
+export const clearShortMemory = async (chatId: number, rootId: string): Promise<void> => {
+  const path = getShortMemoryPath(chatId, rootId);
   await ensureParentDir(path);
   await writeFile(path, '[]\n', 'utf8');
 };
 
-export const readMarkdownMemory = async (workspaceId: string): Promise<{ global: string; workspace: string }> => {
+export const readMarkdownMemory = async (rootId: string): Promise<{ global: string; root: string }> => {
   const global = await readMemoryFile(getGlobalMemoryPath());
-  const workspace = await readMemoryFile(getWorkspaceMemoryPath(workspaceId));
-  return { global, workspace };
+  const root = await readMemoryFile(getRootMemoryPath(rootId));
+  return { global, root };
+};
+
+export const rememberRoot = async (rootId: string, text: string): Promise<void> => {
+  await appendMemory(getRootMemoryPath(rootId), text);
 };
 
 export const rememberGlobal = async (text: string): Promise<void> => {
   await appendMemory(getGlobalMemoryPath(), text);
-};
-
-export const rememberWorkspace = async (workspaceId: string, text: string): Promise<void> => {
-  await appendMemory(getWorkspaceMemoryPath(workspaceId), text);
 };
 
 const readMemoryFile = async (path: string): Promise<string> => {

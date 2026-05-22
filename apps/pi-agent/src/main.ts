@@ -2,15 +2,24 @@ import { createAuthMiddleware } from './auth';
 import { helpText } from './commands';
 import { getConfigPath, loadConfig } from './config';
 import { getErrorMessage } from './error';
-import { codeBlock } from './format';
+import { codeBlock, plainText } from './format';
 import {
   addShortMemoryMessage,
   clearShortMemory,
   readMarkdownMemory,
   readShortMemory,
   rememberGlobal,
-  rememberWorkspace,
+  rememberRoot,
 } from './memory';
+import { formatAgentMode, isAgentMode, readAgentMode, writeAgentMode } from './mode';
+import {
+  formatModel,
+  formatModelLabel,
+  getAvailableModels,
+  getSelectedModelText,
+  readSelectedModel,
+  writeSelectedModel,
+} from './model';
 import { runPiTask } from './pi-task';
 import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from './server';
 import { ensureAppDirs } from './storage';
@@ -92,14 +101,92 @@ const main = async (): Promise<void> => {
   });
 
   bot.command('status', async (ctx) => {
+    const chatId = getChatId(ctx);
+    const mode = chatId === undefined ? undefined : await readAgentMode(chatId);
+    const model = chatId === undefined ? 'unknown' : await getSelectedModelText(chatId);
+
     await ctx.reply(
       [
         'Status: ok',
         `Root: ${config.rootPath}`,
+        `Mode: ${mode === undefined ? 'unknown' : formatAgentMode(mode)}`,
+        `Model: ${model}`,
         `Busy: ${isBusy(taskState) ? 'yes' : 'no'}`,
         `Queued: ${taskState.queuedTasks.length}`,
       ].join('\n'),
     );
+  });
+
+  bot.command('mode', async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.reply('Cannot use /mode without chat.');
+      return;
+    }
+
+    const payload = getCommandPayload(ctx.text).toLowerCase();
+    if (payload === '') {
+      const mode = await readAgentMode(chatId);
+      await ctx.reply(`Current mode: ${formatAgentMode(mode)}\n\nUse /mode agent or /mode ask`);
+      return;
+    }
+
+    if (!isAgentMode(payload)) {
+      await ctx.reply('Unknown mode. Use /mode agent or /mode ask');
+      return;
+    }
+
+    await writeAgentMode(chatId, payload);
+    await ctx.reply(`Mode changed to ${formatAgentMode(payload)}.`);
+  });
+
+  bot.command('model', async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.reply('Cannot use /model without chat.');
+      return;
+    }
+
+    const models = getAvailableModels();
+    if (models.length === 0) {
+      await ctx.reply('No available models found. Configure Pi auth first.');
+      return;
+    }
+
+    const current = await getSelectedModelText(chatId);
+    await ctx.reply(`Current model: ${current}\n\nChoose a model:`, {
+      reply_markup: {
+        inline_keyboard: models.map((model, index) => [
+          { text: formatModelLabel(model).slice(0, 64), callback_data: `model:${index}` },
+        ]),
+      },
+    });
+  });
+
+  bot.action(/^model:\d+$/, async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.answerCbQuery('Cannot choose model without chat');
+      return;
+    }
+
+    const callbackQuery = ctx.callbackQuery;
+    if (!('data' in callbackQuery)) {
+      await ctx.answerCbQuery('Invalid model action');
+      return;
+    }
+
+    const index = Number(callbackQuery.data.split(':')[1]);
+    const model = getAvailableModels()[index];
+    if (model === undefined) {
+      await ctx.answerCbQuery('Model not found');
+      await ctx.reply('Model list changed. Run /model again.');
+      return;
+    }
+
+    await writeSelectedModel(chatId, model);
+    await ctx.answerCbQuery('Model changed');
+    await ctx.reply(`Model changed to ${formatModel(model)}.`);
   });
 
   bot.command('reload', async (ctx) => {
@@ -120,7 +207,7 @@ const main = async (): Promise<void> => {
     }
 
     if (payload.startsWith('server ')) {
-      await rememberWorkspace(rootMemoryId, payload.slice('server '.length).trim());
+      await rememberRoot(rootMemoryId, payload.slice('server '.length).trim());
       await ctx.reply('Saved to server memory.');
       return;
     }
@@ -132,7 +219,7 @@ const main = async (): Promise<void> => {
     const memory = await readMarkdownMemory(rootMemoryId);
     await ctx.reply(
       truncateText(
-        ['# Global Memory', memory.global || '(empty)', '', '# Server Memory', memory.workspace || '(empty)'].join('\n'),
+        ['Global memory:', memory.global || '(empty)', '', 'Server memory:', memory.root || '(empty)'].join('\n'),
         3500,
       ),
     );
@@ -274,12 +361,16 @@ const main = async (): Promise<void> => {
     try {
       const shortMemory = await readShortMemory(chatId, rootMemoryId);
       const markdownMemory = await readMarkdownMemory(rootMemoryId);
+      const mode = await readAgentMode(chatId);
+      const model = await readSelectedModel(chatId);
       const result = await runPiTask({
         rootPath: config.rootPath,
         prompt: taskText,
+        model,
         shortMemory,
         globalMemory: markdownMemory.global,
-        rootMemory: markdownMemory.workspace,
+        rootMemory: markdownMemory.root,
+        mode,
         onToolStart: async (toolCallId, toolName) => {
           const messageIdPromise = ctx
             .reply(`Using ${toolName} tool...`)
@@ -291,12 +382,12 @@ const main = async (): Promise<void> => {
         onToolEnd: deleteToolMessage,
       });
 
-      await ctx.reply(truncateText(result, 3500));
+      await ctx.reply(truncateText(plainText(result), 3500));
       await addShortMemoryMessage(chatId, {
         role: 'bot',
         text: result,
         timestamp: new Date().toISOString(),
-        workspaceId: rootMemoryId,
+        rootId: rootMemoryId,
         messageId: sourceMessageId,
       });
     } catch (error) {
@@ -318,7 +409,7 @@ const main = async (): Promise<void> => {
       role: 'user',
       text,
       timestamp: new Date().toISOString(),
-      workspaceId: rootMemoryId,
+      rootId: rootMemoryId,
       messageId,
     });
 
@@ -355,7 +446,7 @@ const main = async (): Promise<void> => {
       const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
       const voiceBuffer = await downloadTelegramFile(fileLink);
       const transcript = await transcribeVoiceBuffer(voiceBuffer, config.voice);
-      await ctx.reply(truncateText(`Transcript:\n${transcript}`, 3500));
+      await ctx.reply(truncateText(plainText(`Transcript:\n${transcript}`), 3500));
       await submitTask(ctx, chatId, messageId, transcript);
     } catch (error) {
       await ctx.reply(`Voice transcription failed: ${getErrorMessage(error)}`);
@@ -399,4 +490,5 @@ const main = async (): Promise<void> => {
   });
 };
 
+void main();
 void main();

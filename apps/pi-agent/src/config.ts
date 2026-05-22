@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { resolveWorkspacePath } from './path-safety';
+import { resolveSystemPath } from './path';
 
 export type TelegramConfig = {
   allowedUserIds: number[];
@@ -55,27 +55,13 @@ export const parseConfig = (value: unknown): AppConfig => {
     throw new Error('Config rootPath must be a string');
   }
 
-  const resolvedRootPath = resolveWorkspacePath(process.cwd(), rootPath);
-
-  if (resolvedRootPath === undefined) {
-    throw new Error('Config rootPath must be inside this repo');
-  }
+  const resolvedRootPath = resolveSystemPath(process.cwd(), rootPath);
 
   if (!isRecord(server) || !isStringArray(server.services) || !isStringArray(server.logFiles)) {
     throw new Error('Config server.services and server.logFiles must be string arrays');
   }
 
-  const resolvedLogFiles: string[] = [];
-
-  for (const logFile of server.logFiles) {
-    const resolvedLogFile = resolveWorkspacePath(process.cwd(), logFile);
-
-    if (resolvedLogFile === undefined) {
-      throw new Error('Config server.logFiles must be inside this repo');
-    }
-
-    resolvedLogFiles.push(resolvedLogFile);
-  }
+  const resolvedLogFiles = server.logFiles.map((logFile) => resolveSystemPath(process.cwd(), logFile));
 
   const voiceConfig: VoiceConfig = {
     whisperCommand: 'whisper-cli',
@@ -126,11 +112,7 @@ export const parseConfig = (value: unknown): AppConfig => {
     }
   }
 
-  const resolvedVoiceModel = resolveWorkspacePath(process.cwd(), voiceConfig.whisperModel);
-
-  if (resolvedVoiceModel === undefined) {
-    throw new Error('Config voice.whisperModel must be inside this repo');
-  }
+  const resolvedVoiceModel = resolveSystemPath(process.cwd(), voiceConfig.whisperModel);
 
   return {
     telegram: {

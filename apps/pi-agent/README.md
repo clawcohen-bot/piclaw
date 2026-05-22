@@ -2,7 +2,16 @@
 
 Telegram-controlled Pi SDK agent with repo-local Pi config.
 
-## Isolation
+## Access philosophy
+
+Piclaw trusts the owner by default.
+
+- `rootPath` is the starting/default directory.
+- It is not a sandbox or access boundary.
+- The agent can use absolute paths for full system access.
+- Extra restrictions should be opt-in.
+
+## Pi data
 
 This copy does not use `~/.pi`.
 
@@ -68,7 +77,7 @@ Edit:
 }
 ```
 
-`rootPath` must be inside this repo.
+`rootPath` may be relative or absolute. It only sets the bot's default working directory.
 
 ## Auth
 

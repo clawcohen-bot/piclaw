@@ -1,26 +1,36 @@
-import { createAgentSession, SessionManager } from '@earendil-works/pi-coding-agent';
+import { createAgentSession, ModelRegistry, SessionManager } from '@earendil-works/pi-coding-agent';
 
 import type { ShortMemoryMessage } from './memory';
+import type { AgentMode } from './mode';
 import { createServerTools } from './server-tools';
 import { getPiAgentDir } from './storage';
+
+type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
 type RunPiTaskInput = {
   rootPath: string;
   prompt: string;
+  model?: PiModel;
   shortMemory: ShortMemoryMessage[];
   globalMemory: string;
   rootMemory: string;
+  mode: AgentMode;
   onToolStart: (toolCallId: string, toolName: string) => Promise<void>;
   onToolEnd: (toolCallId: string) => Promise<void>;
 };
 
 export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
   const serverTools = createServerTools({ rootPath: input.rootPath });
+  const tools =
+    input.mode === 'ask'
+      ? ['read', 'grep', 'find', 'ls']
+      : ['read', 'grep', 'find', 'ls', 'server_bash', 'server_write_file', 'server_edit_replace'];
 
   const { session } = await createAgentSession({
     cwd: input.rootPath,
     agentDir: getPiAgentDir(),
-    tools: ['read', 'grep', 'find', 'ls', 'server_bash', 'server_write_file', 'server_edit_replace'],
+    tools,
+    model: input.model,
     customTools: serverTools,
     sessionManager: SessionManager.inMemory(),
   });
@@ -42,34 +52,47 @@ export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
   });
 
   const context = [
-    '# Pi Agent Context',
+    'Pi Agent context',
     '',
     `Root path: ${input.rootPath}`,
+    `Mode: ${input.mode}`,
+    `Model: ${input.model === undefined ? 'Pi default' : `${input.model.provider}/${input.model.id}`}`,
     '',
-    '## Global Memory',
+    'Global memory:',
     input.globalMemory || '(empty)',
     '',
-    '## Root Memory',
+    'Root memory:',
     input.rootMemory || '(empty)',
     '',
-    '## Last Telegram Messages',
+    'Last Telegram messages:',
     input.shortMemory.map((message) => `${message.role}: ${message.text}`).join('\n') || '(empty)',
     '',
-    '## User Task',
+    'User task:',
     input.prompt,
     '',
     'Reply style:',
-    '- The final answer is sent to Telegram.',
-    '- Use short Telegram-friendly text.',
-    '- Prefer bullets and code blocks.',
-    '- Avoid large Markdown headings and tables.',
+    '- Final answer goes to Telegram.',
+    '- Use short, plain text.',
+    '- Prefer simple bullets when helpful.',
+    '- Avoid Markdown headings, tables, and decorative formatting.',
+    '- Do not start lines with #, ##, or similar heading syntax.',
     '',
     'Important tool rules:',
     '- For reading/searching files, use normal read/grep/find/ls tools.',
-    '- For shell commands, use server_bash.',
-    '- For file writes, use server_write_file.',
-    '- For exact text edits, use server_edit_replace.',
-    '- Never try to access files outside the configured root path.',
+    ...(input.mode === 'ask'
+      ? [
+          '- Ask mode is read-only. You may inspect files and answer only.',
+          '- Do not run shell commands, write files, or edit files.',
+          '- If changes are needed, explain what you would change instead of doing it.',
+        ]
+      : [
+          '- Agent mode has full access.',
+          '- For shell commands, use server_bash.',
+          '- For file writes, use server_write_file.',
+          '- For exact text edits, use server_edit_replace.',
+          '- rootPath is only the starting/default directory. It is not a sandbox.',
+          '- Piclaw has full system access by default. Use absolute paths when needed.',
+        ]),
   ].join('\n');
 
   await session.prompt(context);

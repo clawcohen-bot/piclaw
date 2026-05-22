@@ -5,7 +5,7 @@ import { promisify } from 'node:util';
 import { defineTool } from '@earendil-works/pi-coding-agent';
 import { Type } from 'typebox';
 
-import { resolveWorkspacePath } from './path-safety';
+import { resolveSystemPath } from './path';
 import { truncateText } from './text';
 
 const execAsync = promisify(exec);
@@ -35,7 +35,7 @@ export const createServerTools = (input: CreateServerToolsInput) => {
   const serverBash = defineTool({
     name: 'server_bash',
     label: 'Server Bash',
-    description: 'Run a shell command under the configured root.',
+    description: 'Run a shell command from the configured starting directory.',
     parameters: Type.Object({
       command: Type.String({ description: 'Shell command to run' }),
     }),
@@ -55,16 +55,13 @@ export const createServerTools = (input: CreateServerToolsInput) => {
   const serverWrite = defineTool({
     name: 'server_write_file',
     label: 'Server Write File',
-    description: 'Write a file inside the configured root.',
+    description: 'Write a file. Relative paths start from rootPath; absolute paths are allowed.',
     parameters: Type.Object({
-      path: Type.String({ description: 'Root-relative or absolute path inside the configured root' }),
+      path: Type.String({ description: 'Relative path from rootPath, or absolute system path' }),
       content: Type.String({ description: 'Full file content' }),
     }),
     execute: async (_toolCallId, params) => {
-      const resolvedPath = resolveWorkspacePath(input.rootPath, params.path);
-      if (resolvedPath === undefined) {
-        return denied(`Blocked write outside configured root: ${params.path}`);
-      }
+      const resolvedPath = resolveSystemPath(input.rootPath, params.path);
 
       await mkdir(dirname(resolvedPath), { recursive: true });
       await writeFile(resolvedPath, params.content, 'utf8');
@@ -76,17 +73,14 @@ export const createServerTools = (input: CreateServerToolsInput) => {
   const serverEdit = defineTool({
     name: 'server_edit_replace',
     label: 'Server Edit Replace',
-    description: 'Replace exact text in a file inside the configured root.',
+    description: 'Replace exact text in a file. Relative paths start from rootPath; absolute paths are allowed.',
     parameters: Type.Object({
-      path: Type.String({ description: 'Root-relative or absolute path inside the configured root' }),
+      path: Type.String({ description: 'Relative path from rootPath, or absolute system path' }),
       oldText: Type.String({ description: 'Exact text to replace' }),
       newText: Type.String({ description: 'Replacement text' }),
     }),
     execute: async (_toolCallId, params) => {
-      const resolvedPath = resolveWorkspacePath(input.rootPath, params.path);
-      if (resolvedPath === undefined) {
-        return denied(`Blocked edit outside configured root: ${params.path}`);
-      }
+      const resolvedPath = resolveSystemPath(input.rootPath, params.path);
 
       const current = await readFile(resolvedPath, 'utf8');
       if (!current.includes(params.oldText)) {

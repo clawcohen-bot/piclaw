@@ -7,7 +7,7 @@ export type AuditEvent = {
   timestamp: string;
   chatId?: number;
   userId?: number;
-  workspaceId?: string;
+  rootId?: string;
   message: string;
 };
 
