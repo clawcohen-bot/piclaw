@@ -1,7 +1,7 @@
 import { resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-import { resolveSystemPath } from './path';
+import { resolveSystemPath } from '../path';
 
 describe('resolveSystemPath', () => {
   it('resolves relative paths from a base path', () => {

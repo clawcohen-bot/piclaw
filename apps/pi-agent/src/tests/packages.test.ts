@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { formatPackagesList, getAvailablePackages, getPiSettingsPath } from './packages';
-import { ensureAppDirs } from './storage';
+import { formatPackagesList, getAvailablePackages, getPiSettingsPath } from '../packages';
+import { ensureAppDirs } from '../storage';
 
 const originalCwd = process.cwd();
 let tempDir: string;

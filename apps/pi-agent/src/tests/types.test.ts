@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import type { PendingRestart } from './types';
+import type { PendingRestart } from '../types';
 
 describe('PendingRestart type', () => {
   it('accepts the restart approval shape used by runtime code', () => {

@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:child_process', () => ({ exec: vi.fn() }));
 
-import { createServerTools } from './server-tools';
+import { createServerTools } from '../server-tools';
 
 const execMock = vi.mocked(exec);
 const originalCwd = process.cwd();

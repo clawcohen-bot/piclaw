@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getMessageId, getMessageText } from './telegram-text';
+import { getMessageId, getMessageText } from '../telegram-text';
 
 describe('telegram text helpers', () => {
   it('reads text only from text messages', () => {

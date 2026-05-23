@@ -14,8 +14,8 @@ import {
   writeSessionSummary,
   writeShortMemory,
   type ShortMemoryMessage,
-} from './memory';
-import { getAppDir, getMemoryPath, getShortMemoryPath } from './storage';
+} from '../memory';
+import { getAppDir, getMemoryPath, getShortMemoryPath } from '../storage';
 
 const originalCwd = process.cwd();
 let tempDir: string;

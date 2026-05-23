@@ -3,12 +3,12 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { createApprovalKeyboard } from './approval';
-import { createAuthMiddleware, isAllowedUser } from './auth';
-import { helpText } from './commands';
-import { parseConfig } from './config';
-import { getErrorMessage } from './error';
-import { codeBlock, plainText } from './format';
+import { createApprovalKeyboard } from '../approval';
+import { createAuthMiddleware, isAllowedUser } from '../auth';
+import { helpText } from '../commands';
+import { parseConfig } from '../config';
+import { getErrorMessage } from '../error';
+import { codeBlock, plainText } from '../format';
 import {
   addShortMemoryMessage,
   clearSessionSummary,
@@ -20,16 +20,16 @@ import {
   writeSessionSummary,
   writeShortMemory,
   type ShortMemoryMessage,
-} from './memory';
-import { formatAgentMode, isAgentMode, readAgentMode, writeAgentMode } from './mode';
-import { getAvailablePackages, formatPackagesList } from './packages';
-import { resolveSystemPath } from './path';
-import { formatServices } from './server';
-import { ensureAppDirs, getAppDir, getChatModePath, getPiAgentDir } from './storage';
-import { createTaskState, isBusy, popQueuedTask, queueTask } from './task-state';
-import { getChatId, getUserId } from './telegram-context';
-import { getMessageId, getMessageText } from './telegram-text';
-import { getCommandPayload, truncateText } from './text';
+} from '../memory';
+import { formatAgentMode, isAgentMode, readAgentMode, writeAgentMode } from '../mode';
+import { getAvailablePackages, formatPackagesList } from '../packages';
+import { resolveSystemPath } from '../path';
+import { formatServices } from '../server';
+import { ensureAppDirs, getAppDir, getChatModePath, getPiAgentDir } from '../storage';
+import { createTaskState, isBusy, popQueuedTask, queueTask } from '../task-state';
+import { getChatId, getUserId } from '../telegram-context';
+import { getMessageId, getMessageText } from '../telegram-text';
+import { getCommandPayload, truncateText } from '../text';
 
 const originalCwd = process.cwd();
 let tempDir: string;

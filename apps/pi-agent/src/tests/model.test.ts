@@ -43,7 +43,7 @@ import {
   readSelectedModelRef,
   setApiKeyCredential,
   writeSelectedModel,
-} from './model';
+} from '../model';
 
 const originalCwd = process.cwd();
 let tempDir: string;

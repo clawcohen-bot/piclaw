@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { codeBlock, plainText } from './format';
+import { codeBlock, plainText } from '../format';
 
 describe('format helpers', () => {
   it('wraps code text with a code label', () => {

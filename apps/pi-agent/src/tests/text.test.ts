@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getCommandPayload, truncateText } from './text';
+import { getCommandPayload, truncateText } from '../text';
 
 describe('text helpers', () => {
   it('extracts command payload after the first space', () => {

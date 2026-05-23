@@ -13,7 +13,7 @@ import {
   getPiAgentDir,
   getSessionSummaryPath,
   getShortMemoryPath,
-} from './storage';
+} from '../storage';
 
 const originalCwd = process.cwd();
 let tempDir: string;

@@ -6,8 +6,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:child_process', () => ({ execFile: vi.fn() }));
 
-import type { AppConfig } from './config';
-import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from './server';
+import type { AppConfig } from '../config';
+import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from '../server';
 
 const execFileMock = vi.mocked(execFile);
 const originalCwd = process.cwd();

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getChatId, getUserId } from './telegram-context';
+import { getChatId, getUserId } from '../telegram-context';
 
 describe('telegram context helpers', () => {
   it('reads chat ids from ctx.chat or ctx.message.chat', () => {

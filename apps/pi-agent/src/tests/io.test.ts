@@ -11,12 +11,12 @@ vi.mock('node:child_process', () => ({
   exec: execMock,
 }));
 
-import { writeAuditEvent } from './audit';
-import { parseConfig } from './config';
-import { getAuditLogPath } from './storage';
-import { getServerStatus, readAllowedLogs, restartAllowedService } from './server';
-import { createServerTools } from './server-tools';
-import { downloadTelegramFile, transcribeVoiceBuffer } from './voice';
+import { writeAuditEvent } from '../audit';
+import { parseConfig } from '../config';
+import { getAuditLogPath } from '../storage';
+import { getServerStatus, readAllowedLogs, restartAllowedService } from '../server';
+import { createServerTools } from '../server-tools';
+import { downloadTelegramFile, transcribeVoiceBuffer } from '../voice';
 
 const originalCwd = process.cwd();
 let tempDir: string;

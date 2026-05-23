@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createTaskState, isBusy, popQueuedTask, queueTask } from './task-state';
+import { createTaskState, isBusy, popQueuedTask, queueTask } from '../task-state';
 
 describe('task state', () => {
   it('creates idle state and reports busy only with active task', () => {

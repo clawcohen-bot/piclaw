@@ -3,8 +3,8 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { writeAuditEvent, type AuditEvent } from './audit';
-import { getAuditLogPath } from './storage';
+import { writeAuditEvent, type AuditEvent } from '../audit';
+import { getAuditLogPath } from '../storage';
 
 const originalCwd = process.cwd();
 let tempDir: string;

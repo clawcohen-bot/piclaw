@@ -5,8 +5,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 vi.mock('node:child_process', () => ({ execFile: vi.fn() }));
 
-import type { VoiceConfig } from './config';
-import { downloadTelegramFile, transcribeVoiceBuffer } from './voice';
+import type { VoiceConfig } from '../config';
+import { downloadTelegramFile, transcribeVoiceBuffer } from '../voice';
 
 const execFileMock = vi.mocked(execFile);
 

@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { getConfigPath, loadConfig, parseConfig } from './config';
+import { getConfigPath, loadConfig, parseConfig } from '../config';
 
 const originalCwd = process.cwd();
 let tempDir: string;

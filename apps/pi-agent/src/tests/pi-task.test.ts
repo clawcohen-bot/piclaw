@@ -9,11 +9,11 @@ vi.mock('@earendil-works/pi-coding-agent', () => ({
   ModelRegistry: {},
 }));
 
-vi.mock('./server-tools', () => ({
+vi.mock('../server-tools', () => ({
   createServerTools: createServerToolsMock,
 }));
 
-import { compactTelegramContext, runPiTask } from './pi-task';
+import { compactTelegramContext, runPiTask } from '../pi-task';
 
 const makeSession = () => {
   let listener: ((event: any) => void) | undefined;

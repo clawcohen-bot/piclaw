@@ -18,7 +18,7 @@ Repo test stack:
 - Coverage output: `coverage/pi-agent/`
 
 Rules:
-- Put tests in `apps/pi-agent/src/` as `*.test.ts` beside the source files and import source files with `./`.
+- Put tests in `apps/pi-agent/src/tests/` as `*.test.ts` and import source files with `../`.
 - Use `node:fs/promises` plus temp directories for filesystem tests.
 - Restore `process.cwd()` after tests that change it.
 - Mock external process calls (`exec`, `execFile`) before importing modules that promisify them.

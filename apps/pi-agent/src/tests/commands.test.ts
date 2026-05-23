@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { helpText } from './commands';
+import { helpText } from '../commands';
 
 describe('helpText', () => {
   it('lists core bot commands and voice usage', () => {

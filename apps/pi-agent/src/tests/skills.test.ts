@@ -10,7 +10,7 @@ vi.mock('@earendil-works/pi-coding-agent', () => ({
   loadSkills: loadSkillsMock,
 }));
 
-import { formatSkillsList, formatSkillsStatusList, getAvailableSkillSummaries } from './skills';
+import { formatSkillsList, formatSkillsStatusList, getAvailableSkillSummaries } from '../skills';
 
 let tempDir: string;
 

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { createApprovalKeyboard } from './approval';
+import { createApprovalKeyboard } from '../approval';
 
 describe('createApprovalKeyboard', () => {
   it('builds approve and reject callback buttons for the action id', () => {

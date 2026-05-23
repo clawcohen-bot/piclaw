@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
-import { createAuthMiddleware, isAllowedUser } from './auth';
-import type { AppConfig } from './config';
+import { createAuthMiddleware, isAllowedUser } from '../auth';
+import type { AppConfig } from '../config';
 
 const config: AppConfig = {
   telegram: { allowedUserIds: [10, 20] },
