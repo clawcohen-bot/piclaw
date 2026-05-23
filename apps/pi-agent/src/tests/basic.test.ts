@@ -8,7 +8,7 @@ import { createAuthMiddleware, isAllowedUser } from '../auth';
 import { helpText } from '../commands';
 import { parseConfig } from '../config';
 import { getErrorMessage } from '../error';
-import { codeBlock, plainText } from '../format';
+import { codeBlock, telegramHtmlFromMarkdown } from '../format';
 import {
   addShortMemoryMessage,
   clearSessionSummary,
@@ -63,9 +63,9 @@ describe('text and format helpers', () => {
     expect(truncateText('abcdef', 4)).toBe('abc…');
   });
 
-  it('formats code and plain telegram text', () => {
-    expect(codeBlock('x')).toBe('Code:\nx');
-    expect(plainText('# Title\r\nline  \n\n\n## Next')).toBe('Title\nline\n\nNext');
+  it('formats code and telegram html text', () => {
+    expect(codeBlock('x')).toBe('<pre>x</pre>');
+    expect(telegramHtmlFromMarkdown('# Title\n**bold**')).toBe('<b>Title</b>\n<b>bold</b>');
   });
 });
 

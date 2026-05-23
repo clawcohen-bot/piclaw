@@ -2,7 +2,7 @@ import { createAuthMiddleware } from './auth';
 import { helpText } from './commands';
 import { getConfigPath, loadConfig } from './config';
 import { getErrorMessage } from './error';
-import { codeBlock, plainText } from './format';
+import { codeBlock, telegramHtmlFromMarkdown } from './format';
 import {
   addShortMemoryMessage,
   clearSessionSummary,
@@ -58,6 +58,10 @@ type TypingContext = {
 };
 
 type TaskContext = Context & TypingContext;
+
+const replyTelegramHtml = async (ctx: Context, text: string): Promise<void> => {
+  await ctx.reply(text, { parse_mode: 'HTML' });
+};
 
 type PendingAuthInput = {
   kind: 'api_key' | 'oauth_input';
@@ -525,7 +529,7 @@ const main = async (): Promise<void> => {
 
   bot.command('memory', async (ctx) => {
     const memory = await readMarkdownMemory();
-    await ctx.reply(truncateText(['Memory:', memory || '(empty)'].join('\n'), 3500));
+    await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(['Memory:', memory || '(empty)'].join('\n'), 3500)));
   });
 
   bot.command('new', async (ctx) => {
@@ -541,12 +545,12 @@ const main = async (): Promise<void> => {
 
   bot.command('summary', async (ctx) => {
     const summary = await readSessionSummary();
-    await ctx.reply(truncateText(['Session summary:', summary || '(empty)'].join('\n'), 3500));
+    await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(['Session summary:', summary || '(empty)'].join('\n'), 3500)));
   });
 
   bot.hears(/^\/server-status(?:@\w+)?(?:\s|$)/, async (ctx) => {
     try {
-      await ctx.reply(codeBlock(await getServerStatus()));
+      await replyTelegramHtml(ctx, codeBlock(await getServerStatus()));
     } catch (error) {
       await ctx.reply(`Server status failed: ${getErrorMessage(error)}`);
     }
@@ -564,7 +568,7 @@ const main = async (): Promise<void> => {
     }
 
     try {
-      await ctx.reply(codeBlock(await readAllowedLogs(config, value)));
+      await replyTelegramHtml(ctx, codeBlock(await readAllowedLogs(config, value)));
     } catch (error) {
       await ctx.reply(`Server logs failed: ${getErrorMessage(error)}`);
     }
@@ -718,7 +722,7 @@ const main = async (): Promise<void> => {
         onToolEnd: deleteToolMessage,
       });
 
-      await ctx.reply(truncateText(plainText(result), 3500));
+      await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(result, 3500)));
       await addShortMemoryMessage(chatId, {
         role: 'bot',
         text: result,
@@ -783,7 +787,7 @@ const main = async (): Promise<void> => {
       const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
       const voiceBuffer = await downloadTelegramFile(fileLink);
       const transcript = await transcribeVoiceBuffer(voiceBuffer, config.voice);
-      await ctx.reply(truncateText(plainText(`Transcript:\n${transcript}`), 3500));
+      await ctx.reply(truncateText(`Transcript:\n${transcript}`, 3500));
       await submitTask(ctx, chatId, messageId, transcript);
     } catch (error) {
       await ctx.reply(`Voice transcription failed: ${getErrorMessage(error)}`);
