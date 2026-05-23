@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "pi-agent": "nx serve pi-agent",
-    "pi-agent:dev": "tsx watch --env-file=.env apps/pi-agent/src/main.ts"
+    "pi-agent:dev": "tsx watch --env-file=.env apps/pi-agent/src/main.ts",
+    "test": "nx test pi-agent",
+    "test:coverage": "nx test pi-agent"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.75.3",
@@ -15,8 +17,10 @@
   },
   "devDependencies": {
     "@types/node": "^25.9.0",
+    "@vitest/coverage-v8": "^4.1.7",
     "nx": "^22.7.2",
     "tsx": "^4.22.2",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.7"
   }
 }
