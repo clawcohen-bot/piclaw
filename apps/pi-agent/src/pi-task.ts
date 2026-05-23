@@ -12,8 +12,8 @@ type RunPiTaskInput = {
   prompt: string;
   model?: PiModel;
   shortMemory: ShortMemoryMessage[];
-  globalMemory: string;
-  rootMemory: string;
+  memory: string;
+  sessionSummary: string;
   mode: AgentMode;
   onToolStart: (toolCallId: string, toolName: string) => Promise<void>;
   onToolEnd: (toolCallId: string) => Promise<void>;
@@ -21,10 +21,20 @@ type RunPiTaskInput = {
 
 export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
   const serverTools = createServerTools({ rootPath: input.rootPath });
+  const webTools = ['web_search', 'fetch_content', 'get_search_content', 'code_search', 'web_fetch', 'batch_web_fetch'];
   const tools =
     input.mode === 'ask'
-      ? ['read', 'grep', 'find', 'ls']
-      : ['read', 'grep', 'find', 'ls', 'server_bash', 'server_write_file', 'server_edit_replace'];
+      ? ['read', 'grep', 'find', 'ls', ...webTools]
+      : [
+          'read',
+          'grep',
+          'find',
+          'ls',
+          'server_bash',
+          'server_write_file',
+          'server_edit_replace',
+          ...webTools,
+        ];
 
   const { session } = await createAgentSession({
     cwd: input.rootPath,
@@ -58,14 +68,14 @@ export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
     `Mode: ${input.mode}`,
     `Model: ${input.model === undefined ? 'Pi default' : `${input.model.provider}/${input.model.id}`}`,
     '',
-    'Global memory:',
-    input.globalMemory || '(empty)',
+    'Memory:',
+    input.memory || '(empty)',
     '',
-    'Root memory:',
-    input.rootMemory || '(empty)',
+    'Session summary:',
+    input.sessionSummary || '(empty)',
     '',
     'Last Telegram messages:',
-    input.shortMemory.map((message) => `${message.role}: ${message.text}`).join('\n') || '(empty)',
+    input.shortMemory.slice(-15).map((message) => `${message.role}: ${message.text}`).join('\n') || '(empty)',
     '',
     'User task:',
     input.prompt,
@@ -102,4 +112,54 @@ export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
   session.dispose();
 
   return output.trim() || 'Done.';
+};
+
+
+export const compactTelegramContext = async (input: {
+  rootPath: string;
+  model?: PiModel;
+  existingSummary: string;
+  messages: ShortMemoryMessage[];
+}): Promise<string> => {
+  if (input.messages.length === 0) {
+    return input.existingSummary;
+  }
+
+  const { session } = await createAgentSession({
+    cwd: input.rootPath,
+    agentDir: getPiAgentDir(),
+    tools: [],
+    model: input.model,
+    customTools: [],
+    sessionManager: SessionManager.inMemory(),
+  });
+
+  let output = '';
+  const unsubscribe = session.subscribe((event) => {
+    if (event.type === 'message_update' && event.assistantMessageEvent.type === 'text_delta') {
+      output += event.assistantMessageEvent.delta;
+    }
+  });
+
+  const prompt = [
+    'Compact Telegram chat context for a coding agent.',
+    '',
+    'Keep important facts, goals, decisions, files changed, errors, and current status.',
+    'Remove small talk and duplicate details.',
+    'Return only the updated summary in short plain text bullets.',
+    '',
+    'Existing summary:',
+    input.existingSummary || '(empty)',
+    '',
+    'Messages to compact:',
+    input.messages.map((message) => `${message.role}: ${message.text}`).join('\n'),
+  ].join('\n');
+
+  await session.prompt(prompt);
+  await session.agent.waitForIdle();
+
+  unsubscribe();
+  session.dispose();
+
+  return output.trim() || input.existingSummary;
 };

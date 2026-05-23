@@ -105,8 +105,7 @@ pnpm pi-agent:dev
 ## Commands
 
 - `/start`
-- `/remember global <text>`
-- `/remember server <text>`
+- `/remember <text>`
 - `/memory`
 - `/forget`
 - `/status`

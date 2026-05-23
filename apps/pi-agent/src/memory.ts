@@ -1,6 +1,6 @@
 import { appendFile, readFile, writeFile } from 'node:fs/promises';
 
-import { ensureParentDir, getGlobalMemoryPath, getRootMemoryPath, getShortMemoryPath } from './storage';
+import { ensureParentDir, getMemoryPath, getSessionSummaryPath, getShortMemoryPath } from './storage';
 
 export type ShortMemoryMessage = {
   role: 'user' | 'bot';
@@ -9,6 +9,8 @@ export type ShortMemoryMessage = {
   rootId: string;
   messageId: number;
 };
+
+const shortMemoryLimit = 30;
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -47,10 +49,21 @@ export const addShortMemoryMessage = async (
 ): Promise<void> => {
   const path = getShortMemoryPath(chatId, message.rootId);
   const current = await readShortMemory(chatId, message.rootId);
-  const next = [...current, message].slice(-15);
+  const next = [...current, message].slice(-shortMemoryLimit);
 
   await ensureParentDir(path);
   await writeFile(path, JSON.stringify(next, null, 2), 'utf8');
+};
+
+
+export const writeShortMemory = async (
+  chatId: number,
+  rootId: string,
+  messages: ShortMemoryMessage[],
+): Promise<void> => {
+  const path = getShortMemoryPath(chatId, rootId);
+  await ensureParentDir(path);
+  await writeFile(path, JSON.stringify(messages.slice(-shortMemoryLimit), null, 2), 'utf8');
 };
 
 export const clearShortMemory = async (chatId: number, rootId: string): Promise<void> => {
@@ -59,18 +72,26 @@ export const clearShortMemory = async (chatId: number, rootId: string): Promise<
   await writeFile(path, '[]\n', 'utf8');
 };
 
-export const readMarkdownMemory = async (rootId: string): Promise<{ global: string; root: string }> => {
-  const global = await readMemoryFile(getGlobalMemoryPath());
-  const root = await readMemoryFile(getRootMemoryPath(rootId));
-  return { global, root };
+export const readMarkdownMemory = async (): Promise<string> => {
+  return readMemoryFile(getMemoryPath());
 };
 
-export const rememberRoot = async (rootId: string, text: string): Promise<void> => {
-  await appendMemory(getRootMemoryPath(rootId), text);
+export const readSessionSummary = async (): Promise<string> => {
+  return readMemoryFile(getSessionSummaryPath());
 };
 
-export const rememberGlobal = async (text: string): Promise<void> => {
-  await appendMemory(getGlobalMemoryPath(), text);
+export const writeSessionSummary = async (summary: string): Promise<void> => {
+  const path = getSessionSummaryPath();
+  await ensureParentDir(path);
+  await writeFile(path, summary.trim() === '' ? '' : `${summary.trim()}\n`, 'utf8');
+};
+
+export const clearSessionSummary = async (): Promise<void> => {
+  await writeSessionSummary('');
+};
+
+export const remember = async (text: string): Promise<void> => {
+  await appendMemory(getMemoryPath(), text);
 };
 
 const readMemoryFile = async (path: string): Promise<string> => {

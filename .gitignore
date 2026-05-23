@@ -9,4 +9,7 @@
 node_modules
 config/pi-agent.json
 .data/
+.cronjobs/*/logs/
+.cronjobs/*/.env
+.cronjobs/*/.lock
 data/

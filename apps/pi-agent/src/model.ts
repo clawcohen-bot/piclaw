@@ -11,18 +11,111 @@ type SelectedModel = {
   id: string;
 };
 
+export type AuthProviderOption = {
+  id: string;
+  name: string;
+  authType: 'oauth' | 'api_key';
+};
+
+export type SafeAuthStatus = {
+  provider: string;
+  name: string;
+  authType?: 'oauth' | 'api_key';
+  configured: boolean;
+  source?: string;
+  modelCount: number;
+};
+
 export const getChatModelPath = (chatId: number): string => join(getAppDir(), 'models', `${chatId}.json`);
 
-const createModelRegistry = (): ModelRegistry => {
-  const piAgentDir = getPiAgentDir();
-  const authStorage = AuthStorage.create(join(piAgentDir, 'auth.json'));
-  return ModelRegistry.create(authStorage, join(piAgentDir, 'models.json'));
-};
+export const createAuthStorage = (): AuthStorage => AuthStorage.create(join(getPiAgentDir(), 'auth.json'));
+
+const createModelRegistry = (): ModelRegistry =>
+  ModelRegistry.create(createAuthStorage(), join(getPiAgentDir(), 'models.json'));
 
 export const getAvailableModels = (): PiModel[] =>
   createModelRegistry()
     .getAvailable()
     .sort((a, b) => `${a.provider}/${a.name}`.localeCompare(`${b.provider}/${b.name}`));
+
+export const getAllAuthProviderOptions = (): AuthProviderOption[] => {
+  const registry = createModelRegistry();
+  const authStorage = registry.authStorage;
+  const oauthProviders = authStorage.getOAuthProviders();
+  const options: AuthProviderOption[] = oauthProviders.map((provider) => ({
+    id: provider.id,
+    name: provider.name,
+    authType: 'oauth',
+  }));
+
+  const modelProviderIds = [...new Set(registry.getAll().map((model) => model.provider))].sort();
+  for (const providerId of modelProviderIds) {
+    options.push({
+      id: providerId,
+      name: registry.getProviderDisplayName(providerId),
+      authType: 'api_key',
+    });
+  }
+
+  const seen = new Set<string>();
+  return options
+    .filter((option) => {
+      const key = `${option.authType}:${option.id}`;
+      if (seen.has(key)) {
+        return false;
+      }
+      seen.add(key);
+      return true;
+    })
+    .sort((a, b) => `${a.authType}:${a.name}`.localeCompare(`${b.authType}:${b.name}`));
+};
+
+export const findAuthProviderOption = (providerId: string, authType?: AuthProviderOption['authType']): AuthProviderOption | undefined => {
+  const normalized = providerId.toLowerCase();
+  const options = getAllAuthProviderOptions();
+  return options.find(
+    (option) =>
+      option.id.toLowerCase() === normalized && (authType === undefined || option.authType === authType),
+  );
+};
+
+export const setApiKeyCredential = (providerId: string, apiKey: string): void => {
+  createAuthStorage().set(providerId, { type: 'api_key', key: apiKey });
+};
+
+export const loginOAuthProvider = async (
+  providerId: string,
+  callbacks: Parameters<AuthStorage['login']>[1],
+): Promise<void> => {
+  await createAuthStorage().login(providerId as Parameters<AuthStorage['login']>[0], callbacks);
+};
+
+export const logoutAuthProvider = (providerId: string): void => {
+  createAuthStorage().logout(providerId);
+};
+
+export const getSafeAuthStatus = (providerId: string): SafeAuthStatus => {
+  const registry = createModelRegistry();
+  const authStorage = registry.authStorage;
+  const credential = authStorage.get(providerId);
+  const status = registry.getProviderAuthStatus(providerId);
+  return {
+    provider: providerId,
+    name: registry.getProviderDisplayName(providerId),
+    authType: credential?.type,
+    configured: status.configured,
+    source: status.source,
+    modelCount: registry.getAll().filter((model) => model.provider === providerId).length,
+  };
+};
+
+export const getConnectedAuthProviderStatuses = (): SafeAuthStatus[] =>
+  createAuthStorage()
+    .list()
+    .map(getSafeAuthStatus)
+    .sort((a, b) => a.name.localeCompare(b.name));
+
+export const getConfiguredProviderCount = (): number => createAuthStorage().list().length;
 
 export const formatModel = (model: PiModel): string => `${model.provider}/${model.id}`;
 

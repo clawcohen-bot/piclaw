@@ -5,15 +5,12 @@ export const getAppDir = (): string => join(process.cwd(), 'data', 'pi-agent');
 
 export const getPiAgentDir = (): string => join(process.cwd(), 'data', 'pi');
 
-export const getMemoryDir = (): string => join(getAppDir(), 'memory');
+export const getMemoryPath = (): string => join(getAppDir(), 'memory.md');
+
+export const getSessionSummaryPath = (): string => join(getAppDir(), 'summary.md');
 
 export const getShortMemoryPath = (chatId: number, rootId: string): string =>
   join(getAppDir(), 'short-memory', `${chatId}-${rootId}.json`);
-
-export const getGlobalMemoryPath = (): string => join(getMemoryDir(), 'global.md');
-
-export const getRootMemoryPath = (rootId: string): string =>
-  join(getMemoryDir(), 'roots', `${rootId}.md`);
 
 export const getAuditLogPath = (): string => join(getAppDir(), 'audit.jsonl');
 
@@ -24,7 +21,7 @@ export const ensureParentDir = async (path: string): Promise<void> => {
 };
 
 export const ensureAppDirs = async (): Promise<void> => {
-  await mkdir(join(getMemoryDir(), 'roots'), { recursive: true });
+  await mkdir(getAppDir(), { recursive: true });
   await mkdir(join(getAppDir(), 'short-memory'), { recursive: true });
   await mkdir(join(getAppDir(), 'modes'), { recursive: true });
   await mkdir(join(getAppDir(), 'models'), { recursive: true });
