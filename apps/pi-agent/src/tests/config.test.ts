@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -46,6 +46,7 @@ describe('config', () => {
   });
 
   it('loads json config from disk', async () => {
+    await mkdir(join(tempDir, 'config'));
     await writeFile(getConfigPath(), JSON.stringify(baseConfig));
     await expect(loadConfig()).resolves.toMatchObject({ telegram: { allowedUserIds: [1, 2] } });
   });

@@ -25,6 +25,7 @@ export const ensureAppDirs = async (): Promise<void> => {
   await mkdir(join(getAppDir(), 'short-memory'), { recursive: true });
   await mkdir(join(getAppDir(), 'modes'), { recursive: true });
   await mkdir(join(getAppDir(), 'models'), { recursive: true });
+  await mkdir(join(getAppDir(), 'usage-warnings'), { recursive: true });
   await mkdir(join(getPiAgentDir(), 'skills'), { recursive: true });
   await mkdir(join(getPiAgentDir(), 'sessions'), { recursive: true });
   await mkdir(join(getPiAgentDir(), 'prompts'), { recursive: true });

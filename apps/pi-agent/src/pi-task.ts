@@ -4,6 +4,7 @@ import type { ShortMemoryMessage } from './memory';
 import type { AgentMode } from './mode';
 import { createServerTools } from './server-tools';
 import { getPiAgentDir } from './storage';
+import { buildPiTaskContext } from './usage';
 
 type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
@@ -61,49 +62,7 @@ export const runPiTask = async (input: RunPiTaskInput): Promise<string> => {
     }
   });
 
-  const context = [
-    'Pi Agent context',
-    '',
-    `Root path: ${input.rootPath}`,
-    `Mode: ${input.mode}`,
-    `Model: ${input.model === undefined ? 'Pi default' : `${input.model.provider}/${input.model.id}`}`,
-    '',
-    'Memory:',
-    input.memory || '(empty)',
-    '',
-    'Session summary:',
-    input.sessionSummary || '(empty)',
-    '',
-    'Last Telegram messages:',
-    input.shortMemory.slice(-15).map((message) => `${message.role}: ${message.text}`).join('\n') || '(empty)',
-    '',
-    'User task:',
-    input.prompt,
-    '',
-    'Reply style:',
-    '- Final answer goes to Telegram.',
-    '- Use short, plain text.',
-    '- Prefer simple bullets when helpful.',
-    '- Avoid Markdown headings, tables, and decorative formatting.',
-    '- Do not start lines with #, ##, or similar heading syntax.',
-    '',
-    'Important tool rules:',
-    '- For reading/searching files, use normal read/grep/find/ls tools.',
-    ...(input.mode === 'ask'
-      ? [
-          '- Ask mode is read-only. You may inspect files and answer only.',
-          '- Do not run shell commands, write files, or edit files.',
-          '- If changes are needed, explain what you would change instead of doing it.',
-        ]
-      : [
-          '- Agent mode has full access.',
-          '- For shell commands, use server_bash.',
-          '- For file writes, use server_write_file.',
-          '- For exact text edits, use server_edit_replace.',
-          '- rootPath is only the starting/default directory. It is not a sandbox.',
-          '- Piclaw has full system access by default. Use absolute paths when needed.',
-        ]),
-  ].join('\n');
+  const context = buildPiTaskContext(input);
 
   await session.prompt(context);
   await session.agent.waitForIdle();

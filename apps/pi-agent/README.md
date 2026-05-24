@@ -107,7 +107,7 @@ pnpm pi-agent:dev
 - `/start`
 - `/remember <text>`
 - `/memory`
-- `/forget`
+- `/forget` (clear saved long memory)
 - `/status`
 - `/reload`
 - `/cancel`

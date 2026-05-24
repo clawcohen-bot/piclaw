@@ -1,3 +1,4 @@
+import { reviewTelegramMemory } from './auto-memory';
 import { createAuthMiddleware } from './auth';
 import { helpText } from './commands';
 import { getConfigPath, loadConfig } from './config';
@@ -5,12 +6,14 @@ import { getErrorMessage } from './error';
 import { codeBlock, telegramHtmlFromMarkdown } from './format';
 import {
   addShortMemoryMessage,
+  clearMarkdownMemory,
   clearSessionSummary,
   clearShortMemory,
   readMarkdownMemory,
   readSessionSummary,
   readShortMemory,
   remember,
+  writeMarkdownMemory,
   writeSessionSummary,
   writeShortMemory,
 } from './memory';
@@ -41,6 +44,16 @@ import { createTaskState, isBusy, popQueuedTask, queueTask } from './task-state'
 import { getChatId } from './telegram-context';
 import { getMessageId, getMessageText } from './telegram-text';
 import { getCommandPayload, truncateText } from './text';
+import {
+  buildPiTaskContext,
+  calculateContextUsage,
+  clearWarnedUsageLevels,
+  formatContextUsage,
+  formatContextWarning,
+  getUsageWarningLevel,
+  readWarnedUsageLevels,
+  writeWarnedUsageLevels,
+} from './usage';
 import { downloadTelegramFile, transcribeVoiceBuffer } from './voice';
 import { Context, Telegraf } from 'telegraf';
 
@@ -527,9 +540,15 @@ const main = async (): Promise<void> => {
     await ctx.reply('Saved to memory.');
   });
 
+  bot.command('forget', async (ctx) => {
+    await clearMarkdownMemory();
+    await ctx.reply('Forgot saved long-term memory.');
+  });
+
   bot.command('memory', async (ctx) => {
-    const memory = await readMarkdownMemory();
-    await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(['Memory:', memory || '(empty)'].join('\n'), 3500)));
+    const [memory, summary] = await Promise.all([readMarkdownMemory(), readSessionSummary()]);
+    const text = ['Long memory:', memory || '(empty)', '', 'Session compact memory:', summary || '(empty)'].join('\n');
+    await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(text, 3500)));
   });
 
   bot.command('new', async (ctx) => {
@@ -539,13 +558,19 @@ const main = async (): Promise<void> => {
       return;
     }
 
-    await Promise.all([clearShortMemory(chatId, rootMemoryId), clearSessionSummary()]);
+    await Promise.all([clearShortMemory(chatId, rootMemoryId), clearSessionSummary(), clearWarnedUsageLevels(chatId)]);
     await ctx.reply('Started new context. Memory was kept.');
   });
 
-  bot.command('summary', async (ctx) => {
-    const summary = await readSessionSummary();
-    await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(['Session summary:', summary || '(empty)'].join('\n'), 3500)));
+  bot.command('usage', async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.reply('Cannot show usage without chat.');
+      return;
+    }
+
+    const { usage, model } = await getCurrentContextUsage(chatId);
+    await ctx.reply(formatContextUsage(usage, model));
   });
 
   bot.hears(/^\/server-status(?:@\w+)?(?:\s|$)/, async (ctx) => {
@@ -643,6 +668,44 @@ const main = async (): Promise<void> => {
     await ctx.reply('Ignored new task.');
   });
 
+  const getCurrentContextUsage = async (chatId: number, prompt = '') => {
+    const [shortMemory, markdownMemory, sessionSummary, mode, model] = await Promise.all([
+      readShortMemory(chatId, rootMemoryId),
+      readMarkdownMemory(),
+      readSessionSummary(),
+      readAgentMode(chatId),
+      readSelectedModel(chatId),
+    ]);
+
+    const context = buildPiTaskContext({
+      rootPath: config.rootPath,
+      prompt,
+      model,
+      shortMemory,
+      memory: markdownMemory,
+      sessionSummary,
+      mode,
+    });
+
+    return { usage: calculateContextUsage(context, model), model };
+  };
+
+  const sendContextWarningIfNeeded = async (ctx: Context, chatId: number): Promise<void> => {
+    const { usage } = await getCurrentContextUsage(chatId);
+    const level = getUsageWarningLevel(usage);
+    if (level === undefined) {
+      return;
+    }
+
+    const warned = await readWarnedUsageLevels(chatId);
+    if (warned.includes(level)) {
+      return;
+    }
+
+    await writeWarnedUsageLevels(chatId, [...warned, level]);
+    await ctx.reply(formatContextWarning(usage, level));
+  };
+
   const compactContextIfNeeded = async (chatId: number): Promise<void> => {
     const shortMemory = await readShortMemory(chatId, rootMemoryId);
     if (shortMemory.length <= compactContextThreshold) {
@@ -730,6 +793,7 @@ const main = async (): Promise<void> => {
         rootId: rootMemoryId,
         messageId: sourceMessageId,
       });
+      await sendContextWarningIfNeeded(ctx, chatId);
     } catch (error) {
       await ctx.reply(`Task failed: ${getErrorMessage(error)}`);
     } finally {
@@ -744,7 +808,36 @@ const main = async (): Promise<void> => {
     }
   };
 
+  const reviewMemoryIfNeeded = async (ctx: Context, chatId: number, text: string): Promise<void> => {
+    try {
+      const [currentMemory, recentMessages, model] = await Promise.all([
+        readMarkdownMemory(),
+        readShortMemory(chatId, rootMemoryId),
+        readSelectedModel(chatId),
+      ]);
+      const update = await reviewTelegramMemory({
+        rootPath: config.rootPath,
+        model,
+        currentMemory,
+        recentMessages,
+        userText: text,
+      });
+
+      if (update === undefined || update.memory === currentMemory.trim()) {
+        return;
+      }
+
+      await writeMarkdownMemory(update.memory);
+      if (update.notification !== '') {
+        await ctx.reply(truncateText(update.notification, 300));
+      }
+    } catch {
+      // Memory review should never block the user's task.
+    }
+  };
+
   const submitTask = async (ctx: TaskContext, chatId: number, messageId: number, text: string): Promise<void> => {
+    await reviewMemoryIfNeeded(ctx, chatId, text);
     await addShortMemoryMessage(chatId, {
       role: 'user',
       text,

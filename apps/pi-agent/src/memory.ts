@@ -90,6 +90,16 @@ export const clearSessionSummary = async (): Promise<void> => {
   await writeSessionSummary('');
 };
 
+export const writeMarkdownMemory = async (memory: string): Promise<void> => {
+  const path = getMemoryPath();
+  await ensureParentDir(path);
+  await writeFile(path, memory.trim() === '' ? '' : `${memory.trim()}\n`, 'utf8');
+};
+
+export const clearMarkdownMemory = async (): Promise<void> => {
+  await writeMarkdownMemory('');
+};
+
 export const remember = async (text: string): Promise<void> => {
   await appendMemory(getMemoryPath(), text);
 };

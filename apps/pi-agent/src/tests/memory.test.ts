@@ -5,12 +5,14 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import {
   addShortMemoryMessage,
+  clearMarkdownMemory,
   clearSessionSummary,
   clearShortMemory,
   readMarkdownMemory,
   readSessionSummary,
   readShortMemory,
   remember,
+  writeMarkdownMemory,
   writeSessionSummary,
   writeShortMemory,
   type ShortMemoryMessage,
@@ -76,5 +78,14 @@ describe('markdown memory and summaries', () => {
     const content = await readFile(getMemoryPath(), 'utf8');
     expect(content).toMatch(/^- \d{4}-\d{2}-\d{2}T.*: keep this\n$/);
     expect(getAppDir()).toContain('pi-agent');
+  });
+
+  it('writes and clears saved markdown memory', async () => {
+    await writeMarkdownMemory('  - keep this  ');
+    expect(await readMarkdownMemory()).toBe('- keep this\n');
+    await remember('remove this');
+    expect(await readMarkdownMemory()).toContain('remove this');
+    await clearMarkdownMemory();
+    expect(await readMarkdownMemory()).toBe('');
   });
 });

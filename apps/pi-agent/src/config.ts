@@ -27,9 +27,7 @@ export type AppConfig = {
   voice: VoiceConfig;
 };
 
-const defaultConfigPath = join(process.cwd(), 'config', 'pi-agent.json');
-
-export const getConfigPath = (): string => defaultConfigPath;
+export const getConfigPath = (): string => join(process.cwd(), 'config', 'pi-agent.json');
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
