@@ -1,13 +1,13 @@
 import { appendFile, readFile, writeFile } from 'node:fs/promises';
 
-import { ensureParentDir, getMemoryPath, getSessionSummaryPath, getShortMemoryPath } from './storage';
+import { ensureParentDir, getMemoryPath, getSessionSummaryPath, getShortMemoryPath, type ConversationKey } from './storage';
 
 export type ShortMemoryMessage = {
   role: 'user' | 'bot';
   text: string;
   timestamp: string;
   rootId: string;
-  messageId: number;
+  messageId: number | string;
 };
 
 const shortMemoryLimit = 30;
@@ -25,13 +25,13 @@ const isShortMemoryMessage = (value: unknown): value is ShortMemoryMessage => {
     typeof value.text === 'string' &&
     typeof value.timestamp === 'string' &&
     typeof value.rootId === 'string' &&
-    typeof value.messageId === 'number'
+    (typeof value.messageId === 'number' || typeof value.messageId === 'string')
   );
 };
 
-export const readShortMemory = async (chatId: number, rootId: string): Promise<ShortMemoryMessage[]> => {
+export const readShortMemory = async (conversationKey: ConversationKey, rootId: string): Promise<ShortMemoryMessage[]> => {
   try {
-    const content = await readFile(getShortMemoryPath(chatId, rootId), 'utf8');
+    const content = await readFile(getShortMemoryPath(conversationKey, rootId), 'utf8');
     const parsed: unknown = JSON.parse(content);
     if (!Array.isArray(parsed)) {
       return [];
@@ -44,11 +44,11 @@ export const readShortMemory = async (chatId: number, rootId: string): Promise<S
 };
 
 export const addShortMemoryMessage = async (
-  chatId: number,
+  conversationKey: ConversationKey,
   message: ShortMemoryMessage,
 ): Promise<void> => {
-  const path = getShortMemoryPath(chatId, message.rootId);
-  const current = await readShortMemory(chatId, message.rootId);
+  const path = getShortMemoryPath(conversationKey, message.rootId);
+  const current = await readShortMemory(conversationKey, message.rootId);
   const next = [...current, message].slice(-shortMemoryLimit);
 
   await ensureParentDir(path);
@@ -57,17 +57,17 @@ export const addShortMemoryMessage = async (
 
 
 export const writeShortMemory = async (
-  chatId: number,
+  conversationKey: ConversationKey,
   rootId: string,
   messages: ShortMemoryMessage[],
 ): Promise<void> => {
-  const path = getShortMemoryPath(chatId, rootId);
+  const path = getShortMemoryPath(conversationKey, rootId);
   await ensureParentDir(path);
   await writeFile(path, JSON.stringify(messages.slice(-shortMemoryLimit), null, 2), 'utf8');
 };
 
-export const clearShortMemory = async (chatId: number, rootId: string): Promise<void> => {
-  const path = getShortMemoryPath(chatId, rootId);
+export const clearShortMemory = async (conversationKey: ConversationKey, rootId: string): Promise<void> => {
+  const path = getShortMemoryPath(conversationKey, rootId);
   await ensureParentDir(path);
   await writeFile(path, '[]\n', 'utf8');
 };

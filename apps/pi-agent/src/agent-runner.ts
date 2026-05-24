@@ -15,6 +15,7 @@ import { readSelectedModel } from './model';
 import { compactTelegramContext, runPiTask } from './pi-task';
 import { createTaskState, isBusy, popQueuedTask, queueTask, type TaskState } from './task-state';
 import { truncateText } from './text';
+import type { ConversationKey } from './storage';
 import {
   buildPiTaskContext,
   calculateContextUsage,
@@ -39,8 +40,8 @@ export type AgentRunnerCallbacks = {
 };
 
 export type AgentRunnerSubmitInput = {
-  chatId: number;
-  messageId: number;
+  conversationKey: ConversationKey;
+  messageId: number | string;
   text: string;
   callbacks: AgentRunnerCallbacks;
 };
@@ -53,7 +54,7 @@ export type AgentRunner = {
   cancelAndQueuePendingTask(actionId: string): Promise<boolean>;
   ignorePendingTask(actionId: string): boolean;
   cancelActiveTask(): Promise<boolean>;
-  getCurrentContextUsage(chatId: number, prompt?: string): Promise<{
+  getCurrentContextUsage(conversationKey: ConversationKey, prompt?: string): Promise<{
     usage: ReturnType<typeof calculateContextUsage>;
     model: Awaited<ReturnType<typeof readSelectedModel>>;
   }>;
@@ -63,13 +64,13 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
   const taskState = createTaskState();
   const pendingBusyTasks = new Map<string, string>();
 
-  const getCurrentContextUsage = async (chatId: number, prompt = '') => {
+  const getCurrentContextUsage = async (conversationKey: ConversationKey, prompt = '') => {
     const [shortMemory, markdownMemory, sessionSummary, mode, model] = await Promise.all([
-      readShortMemory(chatId, rootMemoryId),
+      readShortMemory(conversationKey, rootMemoryId),
       readMarkdownMemory(),
       readSessionSummary(),
-      readAgentMode(chatId),
-      readSelectedModel(chatId),
+      readAgentMode(conversationKey),
+      readSelectedModel(conversationKey),
     ]);
 
     const context = buildPiTaskContext({
@@ -85,24 +86,24 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     return { usage: calculateContextUsage(context, model), model };
   };
 
-  const sendContextWarningIfNeeded = async (chatId: number, callbacks: AgentRunnerCallbacks): Promise<void> => {
-    const { usage } = await getCurrentContextUsage(chatId);
+  const sendContextWarningIfNeeded = async (conversationKey: ConversationKey, callbacks: AgentRunnerCallbacks): Promise<void> => {
+    const { usage } = await getCurrentContextUsage(conversationKey);
     const level = getUsageWarningLevel(usage);
     if (level === undefined) {
       return;
     }
 
-    const warned = await readWarnedUsageLevels(chatId);
+    const warned = await readWarnedUsageLevels(conversationKey);
     if (warned.includes(level)) {
       return;
     }
 
-    await writeWarnedUsageLevels(chatId, [...warned, level]);
+    await writeWarnedUsageLevels(conversationKey, [...warned, level]);
     await callbacks.sendReply(formatContextWarning(usage, level));
   };
 
-  const compactContextIfNeeded = async (chatId: number): Promise<void> => {
-    const shortMemory = await readShortMemory(chatId, rootMemoryId);
+  const compactContextIfNeeded = async (conversationKey: ConversationKey): Promise<void> => {
+    const shortMemory = await readShortMemory(conversationKey, rootMemoryId);
     if (shortMemory.length <= compactContextThreshold) {
       return;
     }
@@ -114,7 +115,7 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     }
 
     try {
-      const model = await readSelectedModel(chatId);
+      const model = await readSelectedModel(conversationKey);
       const summary = await compactTelegramContext({
         rootPath: config.rootPath,
         model,
@@ -122,13 +123,13 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
         messages: messagesToCompact,
       });
       await writeSessionSummary(summary);
-      await writeShortMemory(chatId, rootMemoryId, messagesToKeep);
+      await writeShortMemory(conversationKey, rootMemoryId, messagesToKeep);
     } catch {
       // Keep raw short memory if compacting fails.
     }
   };
 
-  const runTask = async (chatId: number, taskText: string, sourceMessageId: number, callbacks: AgentRunnerCallbacks): Promise<void> => {
+  const runTask = async (conversationKey: ConversationKey, taskText: string, sourceMessageId: number | string, callbacks: AgentRunnerCallbacks): Promise<void> => {
     taskState.activeTask = {
       abort: async () => Promise.resolve(),
     };
@@ -145,11 +146,11 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     };
 
     try {
-      const shortMemory = await readShortMemory(chatId, rootMemoryId);
+      const shortMemory = await readShortMemory(conversationKey, rootMemoryId);
       const markdownMemory = await readMarkdownMemory();
       const sessionSummary = await readSessionSummary();
-      const mode = await readAgentMode(chatId);
-      const model = await readSelectedModel(chatId);
+      const mode = await readAgentMode(conversationKey);
+      const model = await readSelectedModel(conversationKey);
       const result = await runPiTask({
         rootPath: config.rootPath,
         prompt: taskText,
@@ -166,14 +167,14 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       });
 
       await callbacks.sendFormattedReply(truncateText(result, 3500));
-      await addShortMemoryMessage(chatId, {
+      await addShortMemoryMessage(conversationKey, {
         role: 'bot',
         text: result,
         timestamp: new Date().toISOString(),
         rootId: rootMemoryId,
         messageId: sourceMessageId,
       });
-      await sendContextWarningIfNeeded(chatId, callbacks);
+      await sendContextWarningIfNeeded(conversationKey, callbacks);
     } catch (error) {
       await callbacks.sendReply(`Task failed: ${getErrorMessage(error)}`);
     } finally {
@@ -183,12 +184,12 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       const queued = popQueuedTask(taskState);
       if (queued !== undefined) {
         await callbacks.onQueuedStart();
-        await runTask(chatId, queued, sourceMessageId, callbacks);
+        await runTask(conversationKey, queued, sourceMessageId, callbacks);
       }
     }
   };
 
-  const reviewMemoryIfNeeded = async (chatId: number, text: string, callbacks: AgentRunnerCallbacks): Promise<void> => {
+  const reviewMemoryIfNeeded = async (conversationKey: ConversationKey, text: string, callbacks: AgentRunnerCallbacks): Promise<void> => {
     if (!shouldReviewMemory(text)) {
       return;
     }
@@ -196,8 +197,8 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     try {
       const [currentMemory, recentMessages, model] = await Promise.all([
         readMarkdownMemory(),
-        readShortMemory(chatId, rootMemoryId),
-        readSelectedModel(chatId),
+        readShortMemory(conversationKey, rootMemoryId),
+        readSelectedModel(conversationKey),
       ]);
       const update = await reviewTelegramMemory({
         rootPath: config.rootPath,
@@ -220,16 +221,16 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     }
   };
 
-  const submitTask = async ({ chatId, messageId, text, callbacks }: AgentRunnerSubmitInput): Promise<void> => {
-    await addShortMemoryMessage(chatId, {
+  const submitTask = async ({ conversationKey, messageId, text, callbacks }: AgentRunnerSubmitInput): Promise<void> => {
+    await addShortMemoryMessage(conversationKey, {
       role: 'user',
       text,
       timestamp: new Date().toISOString(),
       rootId: rootMemoryId,
       messageId,
     });
-    void reviewMemoryIfNeeded(chatId, text, callbacks);
-    await compactContextIfNeeded(chatId);
+    void reviewMemoryIfNeeded(conversationKey, text, callbacks);
+    await compactContextIfNeeded(conversationKey);
 
     if (isBusy(taskState)) {
       const actionId = `${Date.now()}-task`;
@@ -238,7 +239,7 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       return;
     }
 
-    void runTask(chatId, text, messageId, callbacks);
+    void runTask(conversationKey, text, messageId, callbacks);
   };
 
   return {

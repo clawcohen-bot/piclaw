@@ -14,7 +14,8 @@ const originalCwd = process.cwd();
 let tempDir: string;
 
 const config = (): AppConfig => ({
-  telegram: { allowedUserIds: [1] },
+  telegram: { enabled: true, allowedUserIds: [1] },
+  slack: { enabled: false, allowedUserIds: [] },
   rootPath: tempDir,
   server: { services: ['demo.service'], logFiles: [resolve(tempDir, 'app.log')] },
   voice: { whisperCommand: 'whisper', whisperModel: 'model', ffmpegCommand: 'ffmpeg', extraArgs: [], timeoutMs: 1000 },

@@ -4,7 +4,8 @@ import { createAuthMiddleware, isAllowedUser } from '../auth';
 import type { AppConfig } from '../config';
 
 const config: AppConfig = {
-  telegram: { allowedUserIds: [10, 20] },
+  telegram: { enabled: true, allowedUserIds: [10, 20] },
+  slack: { enabled: false, allowedUserIds: [] },
   rootPath: '/repo',
   server: { services: [], logFiles: [] },
   voice: { whisperCommand: 'whisper', whisperModel: 'model', ffmpegCommand: 'ffmpeg', extraArgs: [], timeoutMs: 1 },

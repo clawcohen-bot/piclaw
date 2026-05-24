@@ -44,7 +44,6 @@ import {
 import { downloadTelegramFile, transcribeVoiceBuffer } from '../../voice';
 import { Context, Telegraf } from 'telegraf';
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
 const rootMemoryId = 'server-root';
 
 const typingIntervalMs = 4000;
@@ -123,11 +122,7 @@ const startTypingIndicator = (ctx: TypingContext): (() => void) => {
   };
 };
 
-if (!token) {
-  throw new Error('Missing TELEGRAM_BOT_TOKEN');
-}
-
-export const createTelegramConnector = (config: AppConfig): Connector => ({
+export const createTelegramConnector = (config: AppConfig): Connector => ({ 
   start: () => startTelegramConnector(config),
   stop: (reason = 'stop') => {
     activeBot?.stop(reason);
@@ -135,6 +130,11 @@ export const createTelegramConnector = (config: AppConfig): Connector => ({
 });
 
 export const startTelegramConnector = async (config: AppConfig): Promise<void> => {
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) {
+    throw new Error('Missing TELEGRAM_BOT_TOKEN');
+  }
+
   const bot = new Telegraf(token);
   activeBot = bot;
   const agentRunner = createAgentRunner(config);
@@ -710,7 +710,7 @@ export const startTelegramConnector = async (config: AppConfig): Promise<void> =
 
   const submitTask = async (ctx: TaskContext, chatId: number, messageId: number, text: string): Promise<void> => {
     await agentRunner.submitTask({
-      chatId,
+      conversationKey: chatId,
       messageId,
       text,
       callbacks: createRunnerCallbacks(ctx, chatId),

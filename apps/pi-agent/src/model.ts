@@ -2,7 +2,7 @@ import { AuthStorage, ModelRegistry } from '@earendil-works/pi-coding-agent';
 import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
-import { ensureParentDir, getAppDir, getPiAgentDir } from './storage';
+import { ensureParentDir, getAppDir, getPiAgentDir, type ConversationKey } from './storage';
 
 type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
@@ -26,7 +26,10 @@ export type SafeAuthStatus = {
   modelCount: number;
 };
 
-export const getChatModelPath = (chatId: number): string => join(getAppDir(), 'models', `${chatId}.json`);
+const formatStorageKey = (key: ConversationKey): string =>
+  typeof key === 'number' ? String(key) : encodeURIComponent(key);
+
+export const getChatModelPath = (conversationKey: ConversationKey): string => join(getAppDir(), 'models', `${formatStorageKey(conversationKey)}.json`);
 
 export const createAuthStorage = (): AuthStorage => AuthStorage.create(join(getPiAgentDir(), 'auth.json'));
 
@@ -121,9 +124,9 @@ export const formatModel = (model: PiModel): string => `${model.provider}/${mode
 
 export const formatModelLabel = (model: PiModel): string => `${model.name} (${model.provider}/${model.id})`;
 
-export const readSelectedModelRef = async (chatId: number): Promise<SelectedModel | undefined> => {
+export const readSelectedModelRef = async (conversationKey: ConversationKey): Promise<SelectedModel | undefined> => {
   try {
-    const raw = await readFile(getChatModelPath(chatId), 'utf8');
+    const raw = await readFile(getChatModelPath(conversationKey), 'utf8');
     const parsed: unknown = JSON.parse(raw);
     if (
       typeof parsed === 'object' &&
@@ -142,8 +145,8 @@ export const readSelectedModelRef = async (chatId: number): Promise<SelectedMode
   return undefined;
 };
 
-export const readSelectedModel = async (chatId: number): Promise<PiModel | undefined> => {
-  const selected = await readSelectedModelRef(chatId);
+export const readSelectedModel = async (conversationKey: ConversationKey): Promise<PiModel | undefined> => {
+  const selected = await readSelectedModelRef(conversationKey);
   if (selected === undefined) {
     return undefined;
   }
@@ -151,13 +154,13 @@ export const readSelectedModel = async (chatId: number): Promise<PiModel | undef
   return getAvailableModels().find((model) => model.provider === selected.provider && model.id === selected.id);
 };
 
-export const writeSelectedModel = async (chatId: number, model: PiModel): Promise<void> => {
-  const path = getChatModelPath(chatId);
+export const writeSelectedModel = async (conversationKey: ConversationKey, model: PiModel): Promise<void> => {
+  const path = getChatModelPath(conversationKey);
   await ensureParentDir(path);
   await writeFile(path, `${JSON.stringify({ provider: model.provider, id: model.id }, null, 2)}\n`);
 };
 
-export const getSelectedModelText = async (chatId: number): Promise<string> => {
-  const selected = await readSelectedModel(chatId);
+export const getSelectedModelText = async (conversationKey: ConversationKey): Promise<string> => {
+  const selected = await readSelectedModel(conversationKey);
   return selected === undefined ? 'Pi default' : formatModel(selected);
 };

@@ -4,7 +4,13 @@ import { join } from 'node:path';
 import { resolveSystemPath } from './path';
 
 export type TelegramConfig = {
+  enabled: boolean;
   allowedUserIds: number[];
+};
+
+export type SlackConfig = {
+  enabled: boolean;
+  allowedUserIds: string[];
 };
 
 export type ServerConfig = {
@@ -22,6 +28,7 @@ export type VoiceConfig = {
 
 export type AppConfig = {
   telegram: TelegramConfig;
+  slack: SlackConfig;
   rootPath: string;
   server: ServerConfig;
   voice: VoiceConfig;
@@ -43,10 +50,30 @@ export const parseConfig = (value: unknown): AppConfig => {
     throw new Error('Config must be an object');
   }
 
-  const { telegram, rootPath, server, voice } = value;
+  const { telegram, slack, rootPath, server, voice } = value;
 
   if (!isRecord(telegram) || !isNumberArray(telegram.allowedUserIds)) {
     throw new Error('Config telegram.allowedUserIds must be a number array');
+  }
+
+  const telegramEnabled = telegram.enabled === undefined ? true : telegram.enabled;
+  if (typeof telegramEnabled !== 'boolean') {
+    throw new Error('Config telegram.enabled must be a boolean');
+  }
+
+  const slackConfig = slack === undefined ? {} : slack;
+  if (!isRecord(slackConfig)) {
+    throw new Error('Config slack must be an object');
+  }
+
+  const slackEnabled = slackConfig.enabled === undefined ? false : slackConfig.enabled;
+  if (typeof slackEnabled !== 'boolean') {
+    throw new Error('Config slack.enabled must be a boolean');
+  }
+
+  const slackAllowedUserIds = slackConfig.allowedUserIds === undefined ? [] : slackConfig.allowedUserIds;
+  if (!isStringArray(slackAllowedUserIds)) {
+    throw new Error('Config slack.allowedUserIds must be a string array');
   }
 
   if (typeof rootPath !== 'string') {
@@ -114,7 +141,12 @@ export const parseConfig = (value: unknown): AppConfig => {
 
   return {
     telegram: {
+      enabled: telegramEnabled,
       allowedUserIds: telegram.allowedUserIds,
+    },
+    slack: {
+      enabled: slackEnabled,
+      allowedUserIds: slackAllowedUserIds,
     },
     rootPath: resolvedRootPath,
     server: {

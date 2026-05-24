@@ -8,7 +8,8 @@ describe('main module safety', () => {
     const telegramSource = await readFile(new URL('../connectors/telegram/connector.ts', import.meta.url), 'utf8');
 
     expect(mainSource).toContain('createTelegramConnector(config)');
-    expect(telegramSource).toContain("if (!token)");
+    expect(mainSource).toContain('createSlackConnector(config)');
+    expect(telegramSource).toContain("Missing TELEGRAM_BOT_TOKEN");
     expect(telegramSource).toContain("bot.command('status'");
     expect(telegramSource).toContain("bot.on('voice'");
   });

@@ -31,17 +31,23 @@ describe('config', () => {
 
   it('parses defaults and resolves paths', () => {
     const config = parseConfig(baseConfig);
+    expect(config.telegram.enabled).toBe(true);
+    expect(config.slack).toEqual({ enabled: false, allowedUserIds: [] });
     expect(config.rootPath).toBe(resolve(tempDir));
     expect(config.server.logFiles).toEqual([resolve(tempDir, 'logs/app.log')]);
     expect(config.voice).toMatchObject({ whisperCommand: 'whisper-cli', ffmpegCommand: 'ffmpeg', extraArgs: ['--no-prints'], timeoutMs: 120_000 });
     expect(config.voice.whisperModel).toBe(resolve(tempDir, 'data/voice/ggml-base.en.bin'));
   });
 
-  it('parses custom voice settings', () => {
+  it('parses custom voice and connector settings', () => {
     const config = parseConfig({
       ...baseConfig,
+      telegram: { enabled: false, allowedUserIds: [1, 2] },
+      slack: { enabled: true, allowedUserIds: ['U1'] },
       voice: { whisperCommand: 'whisper', whisperModel: 'model.bin', ffmpegCommand: 'avconv', extraArgs: ['--fast'], timeoutMs: 5 },
     });
+    expect(config.telegram.enabled).toBe(false);
+    expect(config.slack).toEqual({ enabled: true, allowedUserIds: ['U1'] });
     expect(config.voice).toEqual({ whisperCommand: 'whisper', whisperModel: resolve(tempDir, 'model.bin'), ffmpegCommand: 'avconv', extraArgs: ['--fast'], timeoutMs: 5 });
   });
 
@@ -54,6 +60,10 @@ describe('config', () => {
   it('rejects invalid config shapes', () => {
     expect(() => parseConfig(null)).toThrow('Config must be an object');
     expect(() => parseConfig({ ...baseConfig, telegram: {} })).toThrow('telegram.allowedUserIds');
+    expect(() => parseConfig({ ...baseConfig, telegram: { enabled: 'yes', allowedUserIds: [] } })).toThrow('telegram.enabled');
+    expect(() => parseConfig({ ...baseConfig, slack: 1 })).toThrow('slack must be an object');
+    expect(() => parseConfig({ ...baseConfig, slack: { enabled: 'yes' } })).toThrow('slack.enabled');
+    expect(() => parseConfig({ ...baseConfig, slack: { allowedUserIds: [1] } })).toThrow('slack.allowedUserIds');
     expect(() => parseConfig({ ...baseConfig, rootPath: 1 })).toThrow('rootPath');
     expect(() => parseConfig({ ...baseConfig, server: { services: [1], logFiles: [] } })).toThrow('server.services');
     expect(() => parseConfig({ ...baseConfig, voice: 1 })).toThrow('voice must be an object');

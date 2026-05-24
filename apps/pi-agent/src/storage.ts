@@ -1,6 +1,11 @@
 import { mkdir } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 
+export type ConversationKey = number | string;
+
+const formatStorageKey = (key: ConversationKey): string =>
+  typeof key === 'number' ? String(key) : encodeURIComponent(key);
+
 export const getAppDir = (): string => join(process.cwd(), 'data', 'pi-agent');
 
 export const getPiAgentDir = (): string => join(process.cwd(), 'data', 'pi');
@@ -9,12 +14,12 @@ export const getMemoryPath = (): string => join(getAppDir(), 'memory.md');
 
 export const getSessionSummaryPath = (): string => join(getAppDir(), 'summary.md');
 
-export const getShortMemoryPath = (chatId: number, rootId: string): string =>
-  join(getAppDir(), 'short-memory', `${chatId}-${rootId}.json`);
+export const getShortMemoryPath = (conversationKey: ConversationKey, rootId: string): string =>
+  join(getAppDir(), 'short-memory', `${formatStorageKey(conversationKey)}-${formatStorageKey(rootId)}.json`);
 
 export const getAuditLogPath = (): string => join(getAppDir(), 'audit.jsonl');
 
-export const getChatModePath = (chatId: number): string => join(getAppDir(), 'modes', `${chatId}.txt`);
+export const getChatModePath = (conversationKey: ConversationKey): string => join(getAppDir(), 'modes', `${formatStorageKey(conversationKey)}.txt`);
 
 export const ensureParentDir = async (path: string): Promise<void> => {
   await mkdir(dirname(path), { recursive: true });

@@ -4,7 +4,7 @@ import { ModelRegistry } from '@earendil-works/pi-coding-agent';
 
 import type { ShortMemoryMessage } from './memory';
 import type { AgentMode } from './mode';
-import { ensureParentDir, getAppDir } from './storage';
+import { ensureParentDir, getAppDir, type ConversationKey } from './storage';
 
 type PiModel = ReturnType<ModelRegistry['getAll']>[number];
 
@@ -152,11 +152,14 @@ export const getUsageWarningLevel = (usage: ContextUsage): number | undefined =>
 export const formatContextWarning = (usage: ContextUsage, level: number): string =>
   `Context warning: estimated ${usage.percentUsed ?? level}% used. Use /new to start fresh if replies get worse.`;
 
-export const getUsageWarningsPath = (chatId: number): string => join(getAppDir(), 'usage-warnings', `${chatId}.json`);
+const formatStorageKey = (key: ConversationKey): string =>
+  typeof key === 'number' ? String(key) : encodeURIComponent(key);
 
-export const readWarnedUsageLevels = async (chatId: number): Promise<number[]> => {
+export const getUsageWarningsPath = (conversationKey: ConversationKey): string => join(getAppDir(), 'usage-warnings', `${formatStorageKey(conversationKey)}.json`);
+
+export const readWarnedUsageLevels = async (conversationKey: ConversationKey): Promise<number[]> => {
   try {
-    const parsed: unknown = JSON.parse(await readFile(getUsageWarningsPath(chatId), 'utf8'));
+    const parsed: unknown = JSON.parse(await readFile(getUsageWarningsPath(conversationKey), 'utf8'));
     if (!Array.isArray(parsed)) {
       return [];
     }
@@ -166,13 +169,13 @@ export const readWarnedUsageLevels = async (chatId: number): Promise<number[]> =
   }
 };
 
-export const writeWarnedUsageLevels = async (chatId: number, levels: number[]): Promise<void> => {
+export const writeWarnedUsageLevels = async (conversationKey: ConversationKey, levels: number[]): Promise<void> => {
   const unique = [...new Set(levels)].sort((a, b) => a - b);
-  const path = getUsageWarningsPath(chatId);
+  const path = getUsageWarningsPath(conversationKey);
   await ensureParentDir(path);
   await writeFile(path, `${JSON.stringify(unique, null, 2)}\n`, 'utf8');
 };
 
-export const clearWarnedUsageLevels = async (chatId: number): Promise<void> => {
-  await writeWarnedUsageLevels(chatId, []);
+export const clearWarnedUsageLevels = async (conversationKey: ConversationKey): Promise<void> => {
+  await writeWarnedUsageLevels(conversationKey, []);
 };
