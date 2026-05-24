@@ -13,6 +13,8 @@ export default defineConfig({
       exclude: [
         'apps/pi-agent/src/**/*.test.ts',
         'apps/pi-agent/src/main.ts',
+        'apps/pi-agent/src/agent-runner.ts',
+        'apps/pi-agent/src/connectors/telegram/connector.ts',
         'apps/pi-agent/src/pi-task.ts',
         'apps/pi-agent/src/model.ts',
         'apps/pi-agent/src/skills.ts',

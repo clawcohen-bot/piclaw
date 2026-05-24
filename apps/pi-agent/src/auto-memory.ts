@@ -16,6 +16,24 @@ export type AutoMemoryUpdate = {
   notification: string;
 };
 
+const memoryReviewPatterns = [
+  /\bremember\b/i,
+  /\bforget\b/i,
+  /\bdelete (?:this|that|my|the)?\s*memory\b/i,
+  /\bremove (?:this|that|my|the)?\s*memory\b/i,
+  /\bupdate (?:this|that|my|the)?\s*memory\b/i,
+  /\bmy name is\b/i,
+  /\bcall me\b/i,
+  /\bi prefer\b/i,
+  /\bi like\b/i,
+  /\bi hate\b/i,
+  /\bdon'?t save\b/i,
+  /\bsave (?:this|that|it)?\s*(?:to|in)?\s*memory\b/i,
+  /\bimportant (?:preference|decision|context)\b/i,
+];
+
+export const shouldReviewMemory = (text: string): boolean => memoryReviewPatterns.some((pattern) => pattern.test(text));
+
 const extractJsonObject = (text: string): string | undefined => {
   const start = text.indexOf('{');
   const end = text.lastIndexOf('}');
@@ -75,13 +93,15 @@ export const reviewTelegramMemory = async (input: AutoMemoryUpdateInput): Promis
     'You maintain long-term memory for a Telegram coding assistant.',
     '',
     'Memory policy:',
-    '- Save useful recurring facts, personal preferences, important decisions, and project/business context.',
-    '- Save things the user explicitly asks to remember.',
-    '- Do not save one-time instructions, temporary moods, or random small details unless useful later.',
+    '- Be very selective. Save only very important long-term facts.',
+    '- Good examples: personal info, strong preferences, important project/business decisions, stable project context.',
+    '- Save things the user explicitly asks to remember if they are safe and useful later.',
+    '- Do not save ordinary task details, one-time instructions, temporary plans, greetings, moods, or low-value chat facts.',
+    '- Do not save coding-session implementation details unless they are an important product/project decision.',
     '- Never save secrets: passwords, API keys, tokens, private keys, recovery codes, or similar credentials.',
-    '- Sensitive personal/business/legal/health/finance info may be saved only if clearly useful; keep it brief.',
+    '- Sensitive personal/business/legal/health/finance info may be saved only if clearly important and useful; keep it brief.',
     '- If the user asks to forget, delete, or change saved memory, update the memory accordingly.',
-    '- Keep memory concise as plain markdown bullets. Preserve useful existing memory.',
+    '- Keep memory very concise as plain markdown bullets. Preserve useful existing memory.',
     '- If memory changes, notification must be one short line like "Saved memory: prefers short answers." or "Updated memory: prefers short answers."',
     '- If no memory change is needed, return the same memory and an empty notification.',
     '',
