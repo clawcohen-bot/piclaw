@@ -10,6 +10,7 @@ node_modules
 coverage/
 config/pi-agent.json
 .data/
+docs/
 .cronjobs/*/logs/
 .cronjobs/*/.env
 .cronjobs/*/.lock
