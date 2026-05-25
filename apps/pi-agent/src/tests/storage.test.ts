@@ -10,6 +10,7 @@ import {
   getAuditLogPath,
   getChatModePath,
   getMemoryPath,
+  getObsidianVaultDir,
   getPiAgentDir,
   getSessionSummaryPath,
   getShortMemoryPath,
@@ -32,6 +33,7 @@ describe('storage paths', () => {
   it('builds app and pi storage paths under cwd', () => {
     expect(getAppDir()).toBe(join(tempDir, 'data', 'pi-agent'));
     expect(getPiAgentDir()).toBe(join(tempDir, 'data', 'pi'));
+    expect(getObsidianVaultDir()).toBe(join(tempDir, 'data', 'obsidian-vault'));
     expect(getMemoryPath()).toBe(join(getAppDir(), 'memory.md'));
     expect(getSessionSummaryPath()).toBe(join(getAppDir(), 'summary.md'));
     expect(getShortMemoryPath(7, 'root')).toBe(join(getAppDir(), 'short-memory', '7-root.json'));
@@ -48,6 +50,8 @@ describe('storage paths', () => {
     await ensureAppDirs();
     await writeFile(join(getPiAgentDir(), 'skills', 'skill.txt'), 'ok');
     await writeFile(join(getAppDir(), 'models', '1.json'), '{}');
+    await writeFile(join(getObsidianVaultDir(), 'vault.txt'), 'ok');
     await expect(readFile(join(getPiAgentDir(), 'skills', 'skill.txt'), 'utf8')).resolves.toBe('ok');
+    await expect(readFile(join(getObsidianVaultDir(), 'vault.txt'), 'utf8')).resolves.toBe('ok');
   });
 });

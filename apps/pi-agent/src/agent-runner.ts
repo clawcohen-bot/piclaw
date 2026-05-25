@@ -102,7 +102,7 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
     await callbacks.sendReply(formatContextWarning(usage, level));
   };
 
-  const compactContextIfNeeded = async (conversationKey: ConversationKey): Promise<void> => {
+  const compactContextIfNeeded = async (conversationKey: ConversationKey, callbacks: AgentRunnerCallbacks): Promise<void> => {
     const shortMemory = await readShortMemory(conversationKey, rootMemoryId);
     if (shortMemory.length <= compactContextThreshold) {
       return;
@@ -114,6 +114,7 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       return;
     }
 
+    const stopTypingIndicator = callbacks.startTyping();
     try {
       const model = await readSelectedModel(conversationKey);
       const summary = await compactTelegramContext({
@@ -126,6 +127,8 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       await writeShortMemory(conversationKey, rootMemoryId, messagesToKeep);
     } catch {
       // Keep raw short memory if compacting fails.
+    } finally {
+      stopTypingIndicator();
     }
   };
 
@@ -230,7 +233,7 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       messageId,
     });
     void reviewMemoryIfNeeded(conversationKey, text, callbacks);
-    await compactContextIfNeeded(conversationKey);
+    await compactContextIfNeeded(conversationKey, callbacks);
 
     if (isBusy(taskState)) {
       const actionId = `${Date.now()}-task`;

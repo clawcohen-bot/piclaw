@@ -42,6 +42,7 @@ import {
   formatContextUsage,
 } from '../../usage';
 import { downloadTelegramFile, transcribeVoiceBuffer } from '../../voice';
+import { addWikiNote, formatWikiOpen, formatWikiSearchResults, formatWikiStatus, searchWiki } from '../../wiki';
 import { Context, Telegraf } from 'telegraf';
 
 const rootMemoryId = 'server-root';
@@ -540,6 +541,35 @@ export const startTelegramConnector = async (config: AppConfig): Promise<void> =
     const [memory, summary] = await Promise.all([readMarkdownMemory(), readSessionSummary()]);
     const text = ['Long memory:', memory || '(empty)', '', 'Session compact memory:', summary || '(empty)'].join('\n');
     await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(text, 3500)));
+  });
+
+  bot.hears(/^\/wiki(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    await ctx.reply(await formatWikiStatus());
+  });
+
+  bot.hears(/^\/wiki-add(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const payload = getCommandPayload(ctx.text);
+    if (payload.length === 0) {
+      await ctx.reply('Use /wiki-add <text>');
+      return;
+    }
+
+    try {
+      const result = await addWikiNote(payload, 'telegram');
+      await ctx.reply(`Added to Obsidian wiki.\nInbox: ${result.inboxPath}\nRaw: ${result.rawPath}`);
+    } catch (error) {
+      await ctx.reply(`Wiki add failed: ${getErrorMessage(error)}`);
+    }
+  });
+
+  bot.hears(/^\/wiki-search(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const query = getCommandPayload(ctx.text);
+    const results = await searchWiki(query);
+    await ctx.reply(truncateText(formatWikiSearchResults(query, results), 3500));
+  });
+
+  bot.hears(/^\/wiki-open(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    await ctx.reply(await formatWikiOpen(getCommandPayload(ctx.text)));
   });
 
   bot.command('new', async (ctx) => {

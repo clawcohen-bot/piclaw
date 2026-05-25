@@ -10,6 +10,8 @@ export const getAppDir = (): string => join(process.cwd(), 'data', 'pi-agent');
 
 export const getPiAgentDir = (): string => join(process.cwd(), 'data', 'pi');
 
+export const getObsidianVaultDir = (): string => join(process.cwd(), 'data', 'obsidian-vault');
+
 export const getMemoryPath = (): string => join(getAppDir(), 'memory.md');
 
 export const getSessionSummaryPath = (): string => join(getAppDir(), 'summary.md');
@@ -36,4 +38,5 @@ export const ensureAppDirs = async (): Promise<void> => {
   await mkdir(join(getPiAgentDir(), 'prompts'), { recursive: true });
   await mkdir(join(getPiAgentDir(), 'themes'), { recursive: true });
   await mkdir(join(getPiAgentDir(), 'extensions'), { recursive: true });
+  await mkdir(getObsidianVaultDir(), { recursive: true });
 };
