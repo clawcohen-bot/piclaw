@@ -1,15 +1,15 @@
 ---
 name: setup
-description: Guide the user step by step until the Piclaw Telegram bot is running and usable. Use when the user asks to set up Piclaw, install it, configure it, run the bot, or get the bot "in the air".
+description: Guide the user step by step until the Piclaw bot is running and usable through Telegram, Slack, or both. Use when the user asks to set up Piclaw, install it, configure it, run the bot, or get the bot "in the air".
 ---
 
-You are helping set up the Piclaw Telegram bot.
+You are helping set up the Piclaw bot.
 
-Goal: take the user one small step at a time until the bot is running and replies in Telegram.
+Goal: take the user one small step at a time until the bot is running and replies through the chosen connector: Telegram, Slack, or both.
 
 ## Style
 
-- Telegram-friendly.
+- Chat-friendly.
 - Short messages.
 - Use bullets and code blocks.
 - Avoid big headings and tables.
@@ -20,7 +20,7 @@ Goal: take the user one small step at a time until the bot is running and replie
 ## Hard rules
 
 - Never ask the user to commit secrets.
-- Never print the Telegram bot token.
+- Never print Telegram tokens, Slack tokens, Slack signing secrets, OpenAI keys, or auth file contents.
 - Do not use systemd steps.
 - Do not use global Pi files from `~/.pi`; this repo is isolated.
 - Keep all paths inside the repo unless the user explicitly asks otherwise.
@@ -86,7 +86,71 @@ cp -n .env.example .env
 cp -n config/pi-agent.example.json config/pi-agent.json
 ```
 
-### 4. Telegram token
+### 4. Choose connector
+
+Ask which connector they want:
+
+```txt
+Which connector do you want?
+- Telegram
+- Slack
+- both
+```
+
+Then update `config/pi-agent.json`:
+
+- Telegram only:
+
+```json
+{
+  "telegram": {
+    "enabled": true,
+    "allowedUserIds": []
+  },
+  "slack": {
+    "enabled": false,
+    "allowedUserIds": []
+  }
+}
+```
+
+- Slack only:
+
+```json
+{
+  "telegram": {
+    "enabled": false,
+    "allowedUserIds": []
+  },
+  "slack": {
+    "enabled": true,
+    "allowedUserIds": []
+  }
+}
+```
+
+- Both:
+
+```json
+{
+  "telegram": {
+    "enabled": true,
+    "allowedUserIds": []
+  },
+  "slack": {
+    "enabled": true,
+    "allowedUserIds": []
+  }
+}
+```
+
+Keep the rest of the file unchanged.
+
+### 5. Telegram setup
+
+Do this only if Telegram is enabled.
+
+#### Telegram token
 
 Check only whether `.env` contains a non-empty token.
 
@@ -119,11 +183,11 @@ If the user sends the token:
 
 Tell them to get the token from BotFather if needed.
 
-### 5. Allowed Telegram user id
+#### Allowed Telegram user id
 
 Check `config/pi-agent.json`.
 
-If it still has the example id, ask the user for their Telegram numeric user id.
+If `telegram.allowedUserIds` is empty or still has the example id, ask the user for their Telegram numeric user id.
 
 Useful message:
 
@@ -144,7 +208,112 @@ Then update:
 
 Keep the rest of the file unchanged.
 
-### 6. Model auth
+### 6. Slack setup
+
+Do this only if Slack is enabled.
+
+#### Slack app config
+
+Tell the user to create or open the Slack app:
+
+```txt
+Go to https://api.slack.com/apps
+Open your app, or create a new one.
+```
+
+Required bot token scopes:
+
+```txt
+app_mentions:read
+chat:write
+im:history
+im:read
+```
+
+Required bot events:
+
+```txt
+app_mention
+message.im
+```
+
+Socket Mode:
+
+```txt
+Enable Socket Mode.
+Create an app-level token with:
+connections:write
+```
+
+Then tell them to reinstall the app to the workspace.
+
+#### Slack secrets
+
+Check only whether `.env` has non-empty values for:
+
+```txt
+SLACK_BOT_TOKEN
+SLACK_APP_TOKEN
+SLACK_SIGNING_SECRET
+```
+
+Do not print the values.
+
+If missing, give the user two options:
+
+```txt
+Slack secrets are missing.
+
+Choose one:
+- add them yourself in `.env`
+- send them here and I will save them
+```
+
+If the user wants to add them themselves, tell them:
+
+```txt
+Open .env and set:
+
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_SIGNING_SECRET=...
+```
+
+If the user sends secrets:
+
+- update only those keys in `.env`
+- never echo the secrets back
+- never include secrets in logs, commits, or replies
+- reply only that the Slack secrets were saved
+
+#### Allowed Slack user id
+
+Check `config/pi-agent.json`.
+
+If `slack.allowedUserIds` is empty, ask for the Slack member id.
+
+Useful message:
+
+```txt
+Open your Slack profile.
+Click More.
+Copy member ID.
+Then send me the id, like U012ABCDEF.
+```
+
+Then update:
+
+```json
+{
+  "slack": {
+    "allowedUserIds": ["U012ABCDEF"]
+  }
+}
+```
+
+Keep the rest of the file unchanged.
+
+### 7. Model auth
 
 Piclaw must have model auth before the bot can answer.
 
@@ -231,7 +400,7 @@ data/pi/auth.json
 Do not use `~/.pi` directly.
 Do not copy from `~/.pi` unless the user explicitly asks.
 
-### 7. Typecheck
+### 8. Typecheck
 
 Run:
 
@@ -241,7 +410,7 @@ cd /home/shmulserver/piclaw-isolated && pnpm nx typecheck pi-agent
 
 Fix repo issues if needed. Do not change setup behavior without asking.
 
-### 8. Run bot
+### 9. Run bot
 
 Run in foreground:
 
@@ -249,36 +418,72 @@ Run in foreground:
 cd /home/shmulserver/piclaw-isolated && pnpm nx serve pi-agent
 ```
 
-If this blocks and logs show the bot started, tell the user to test Telegram:
+If this blocks, tell the user to test the enabled connector.
+
+Telegram test:
 
 ```txt
 Send /start to the bot.
 Then send /status.
 ```
 
-### 9. Confirm bot is in the air
+Slack test:
+
+```txt
+DM the Slack bot: hi
+Or mention it in a channel: @your-bot hi
+```
+
+### 10. Confirm bot is in the air
 
 The bot is considered in the air only when:
 
 - the process is running
-- Telegram `/start` gets a reply
-- `/status` works
+- each enabled connector replies
+- Telegram `/status` works if Telegram is enabled
+- Slack DM or channel mention works if Slack is enabled
 
 If one fails, debug only that failure next.
 
 ## Common failures
 
-### Unauthorized user
+### Telegram unauthorized user
 
-Likely wrong `allowedUserIds`.
+Likely wrong `telegram.allowedUserIds`.
 
 Ask for the numeric Telegram user id and update `config/pi-agent.json`.
 
-### Token invalid
+### Telegram token invalid
 
 Ask the user to verify the token with BotFather.
 
 Do not print or log the token.
+
+### Slack does not reply in channel
+
+Check:
+
+- bot is invited to the channel
+- `Event Subscriptions` is on
+- bot event `app_mention` exists
+- app was reinstalled to workspace
+- user id is in `slack.allowedUserIds`
+
+### Slack does not reply in DM
+
+Check:
+
+- `Event Subscriptions` is on
+- bot event `message.im` exists
+- scopes include `im:history` and `im:read`
+- app was reinstalled to workspace
+- user id is in `slack.allowedUserIds`
+
+### Slack token invalid
+
+Ask the user to verify Slack tokens in the Slack app page.
+
+Do not print or log the tokens.
 
 ### Model auth error
 
@@ -304,6 +509,6 @@ Piclaw is in the air ✅
 
 Checked:
 - bot process is running
-- /start replies
-- /status works
+- enabled connector replies
+- /status works if Telegram is enabled
 ```

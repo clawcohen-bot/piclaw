@@ -1,10 +1,10 @@
 # Piclaw
 
-Telegram-controlled Pi coding agent with isolated repo-local config.
+Telegram and Slack controlled Pi coding agent with isolated repo-local config.
 
 ## What this is
 
-Piclaw lets an allowed Telegram user send tasks to a Pi agent.
+Piclaw lets an allowed Telegram or Slack user send tasks to a Pi agent.
 
 This repo is isolated: it does not use global Pi files from `~/.pi`.
 
@@ -28,21 +28,62 @@ cp .env.example .env
 cp config/pi-agent.example.json config/pi-agent.json
 ```
 
-Set your Telegram bot token in `.env`:
+Choose the connector you want.
+
+For Telegram, set your bot token in `.env`:
 
 ```env
 TELEGRAM_BOT_TOKEN=replace-me
 ```
 
-Edit `config/pi-agent.json` and set your Telegram user id:
+Then set your Telegram user id in `config/pi-agent.json`:
 
 ```json
 {
   "telegram": {
+    "enabled": true,
     "allowedUserIds": [123456789]
+  },
+  "slack": {
+    "enabled": false,
+    "allowedUserIds": []
   }
 }
 ```
+
+For Slack, create a Slack app with:
+
+- Socket Mode enabled
+- app-level token scope: `connections:write`
+- bot scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`
+- bot events: `app_mention`, `message.im`
+
+Then reinstall the app to the workspace.
+
+Set Slack secrets in `.env`:
+
+```env
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_SIGNING_SECRET=...
+```
+
+Then set your Slack member id in `config/pi-agent.json`:
+
+```json
+{
+  "telegram": {
+    "enabled": false,
+    "allowedUserIds": []
+  },
+  "slack": {
+    "enabled": true,
+    "allowedUserIds": ["U012ABCDEF"]
+  }
+}
+```
+
+To use both connectors, set both `enabled` values to `true`.
 
 ## Pi auth
 
@@ -70,7 +111,7 @@ pnpm pi-agent:dev
 
 ## More docs
 
-Telegram bot details are in:
+Bot details are in:
 
 ```txt
 apps/pi-agent/README.md

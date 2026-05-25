@@ -1,6 +1,6 @@
 # Pi Agent
 
-Telegram-controlled Pi SDK agent with repo-local Pi config.
+Telegram and Slack controlled Pi SDK agent with repo-local Pi config.
 
 ## Access philosophy
 
@@ -49,18 +49,41 @@ mkdir -p config
 cp config/pi-agent.example.json config/pi-agent.json
 ```
 
-Secrets stay in `.env`:
+Secrets stay in `.env`.
+
+Telegram:
 
 ```bash
 TELEGRAM_BOT_TOKEN=replace-me
 ```
+
+Slack:
+
+```bash
+SLACK_BOT_TOKEN=xoxb-...
+SLACK_APP_TOKEN=xapp-...
+SLACK_SIGNING_SECRET=...
+```
+
+Slack app requirements:
+
+- Socket Mode enabled
+- app-level token scope: `connections:write`
+- bot scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`
+- bot events: `app_mention`, `message.im`
+- reinstall the app after changing scopes or events
 
 Edit:
 
 ```json
 {
   "telegram": {
+    "enabled": true,
     "allowedUserIds": [123456789]
+  },
+  "slack": {
+    "enabled": false,
+    "allowedUserIds": []
   },
   "rootPath": ".",
   "server": {
@@ -102,7 +125,13 @@ Hot reload:
 pnpm pi-agent:dev
 ```
 
-## Commands
+## Slack usage
+
+- DM the bot: `hi`
+- Or mention it in a channel: `@your-bot hi`
+- Invite the bot to channels where you want mentions to work.
+
+## Telegram commands
 
 - `/start`
 - `/remember <text>`
