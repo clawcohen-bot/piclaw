@@ -2,6 +2,7 @@ import { loadSkills } from '@earendil-works/pi-coding-agent';
 import { existsSync } from 'node:fs';
 import { resolve } from 'node:path';
 
+import { escapeTelegramHtml } from './format';
 import { getPiAgentDir } from './storage';
 
 export type SkillSummary = {
@@ -39,7 +40,26 @@ export const formatSkillsList = (rootPath: string): string => {
     return 'No skills found.';
   }
 
-  return ['Available skills:', '', ...skills.map((skill) => `- ${skill.name}\n  ${skill.description}`)].join('\n');
+  return ['Available skills:', '', skills.map((skill) => `${skill.name}\n  ${skill.description}`).join('\n\n')].join('\n');
+};
+
+export const formatSkillsTelegramHtml = (rootPath: string): string => {
+  const skills = getAvailableSkillSummaries(rootPath);
+
+  if (skills.length === 0) {
+    return 'No skills found.';
+  }
+
+  return [
+    'Available skills:',
+    '',
+    skills
+      .map((skill) => [
+        `<b>${escapeTelegramHtml(skill.name)}</b>`,
+        `<pre>${escapeTelegramHtml(skill.description)}</pre>`,
+      ].join('\n'))
+      .join('\n\n'),
+  ].join('\n');
 };
 
 export const formatSkillsStatusList = (rootPath: string): string => {

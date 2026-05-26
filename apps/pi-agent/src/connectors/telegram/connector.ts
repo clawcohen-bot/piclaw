@@ -6,6 +6,19 @@ import { getConfigPath, type AppConfig } from '../../config';
 import { getErrorMessage } from '../../error';
 import { codeBlock, telegramHtmlFromMarkdown } from '../../format';
 import {
+  type CalendarEventDraft,
+  createGoogleCalendarAuthUrl,
+  createGoogleCalendarEvent,
+  disconnectGoogleCalendar,
+  formatGoogleCalendarEvents,
+  formatGoogleCalendarSetupHelp,
+  formatGoogleCalendarStatus,
+  getGoogleCalendarCredentials,
+  listGoogleCalendarEvents,
+  parseCalendarAddDraft,
+  saveGoogleCalendarCode,
+} from '../../google-calendar';
+import {
   clearMarkdownMemory,
   clearSessionSummary,
   clearShortMemory,
@@ -32,7 +45,7 @@ import {
 } from '../../model';
 import { formatPackagesList } from '../../packages';
 import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from '../../server';
-import { formatSkillsList, formatSkillsStatusList } from '../../skills';
+import { formatSkillsStatusList, formatSkillsTelegramHtml } from '../../skills';
 import { isBusy } from '../../task-state';
 import { getChatId } from '../../telegram-context';
 import { getMessageId, getMessageText } from '../../telegram-text';
@@ -140,6 +153,7 @@ export const startTelegramConnector = async (config: AppConfig): Promise<void> =
   activeBot = bot;
   const agentRunner = createAgentRunner(config);
   const pendingAuthByChat = new Map<number, PendingAuthInput>();
+  const pendingCalendarAddsByChat = new Map<number, CalendarEventDraft>();
 
   bot.use(createAuthMiddleware(config));
 
@@ -175,7 +189,7 @@ export const startTelegramConnector = async (config: AppConfig): Promise<void> =
   });
 
   bot.command('skills', async (ctx) => {
-    await ctx.reply(truncateText(formatSkillsList(config.rootPath), 3500));
+    await replyTelegramHtml(ctx, formatSkillsTelegramHtml(config.rootPath));
   });
 
   const formatAuthStatus = (providerId: string): string => {
@@ -570,6 +584,162 @@ export const startTelegramConnector = async (config: AppConfig): Promise<void> =
 
   bot.hears(/^\/wiki-open(?:@\w+)?(?:\s|$)/, async (ctx) => {
     await ctx.reply(await formatWikiOpen(getCommandPayload(ctx.text)));
+  });
+
+  bot.hears(/^\/calendar(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    await ctx.reply(await formatGoogleCalendarStatus());
+  });
+
+  bot.hears(/^\/calendar-connect(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const credentials = getGoogleCalendarCredentials();
+    if (credentials === undefined) {
+      await ctx.reply(formatGoogleCalendarSetupHelp());
+      return;
+    }
+
+    await ctx.reply(
+      [
+        'Open this Google link and approve Calendar access:',
+        createGoogleCalendarAuthUrl(credentials),
+        '',
+        'After approval, copy the final redirect URL or code and send:',
+        '/calendar-code <redirect-url-or-code>',
+      ].join('\n'),
+    );
+  });
+
+  bot.hears(/^\/calendar-code(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const credentials = getGoogleCalendarCredentials();
+    if (credentials === undefined) {
+      await ctx.reply(formatGoogleCalendarSetupHelp());
+      return;
+    }
+
+    const code = getCommandPayload(ctx.text);
+    if (code.length === 0) {
+      await ctx.reply('Use /calendar-code <redirect-url-or-code>');
+      return;
+    }
+
+    try {
+      await saveGoogleCalendarCode(credentials, code);
+      await ctx.reply('Google Calendar connected. Use /calendar-today or /calendar-week.');
+    } catch (error) {
+      await ctx.reply(`Calendar connect failed: ${getErrorMessage(error)}`);
+    }
+  });
+
+  bot.hears(/^\/calendar-disconnect(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    await disconnectGoogleCalendar();
+    await ctx.reply('Google Calendar disconnected.');
+  });
+
+  bot.hears(/^\/calendar-today(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const credentials = getGoogleCalendarCredentials();
+    if (credentials === undefined) {
+      await ctx.reply(formatGoogleCalendarSetupHelp());
+      return;
+    }
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 1);
+
+    try {
+      const events = await listGoogleCalendarEvents(credentials, start, end);
+      await ctx.reply(truncateText(formatGoogleCalendarEvents('today', events), 3500));
+    } catch (error) {
+      await ctx.reply(`Calendar read failed: ${getErrorMessage(error)}`);
+    }
+  });
+
+  bot.hears(/^\/calendar-week(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const credentials = getGoogleCalendarCredentials();
+    if (credentials === undefined) {
+      await ctx.reply(formatGoogleCalendarSetupHelp());
+      return;
+    }
+
+    const start = new Date();
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(end.getDate() + 7);
+
+    try {
+      const events = await listGoogleCalendarEvents(credentials, start, end);
+      await ctx.reply(truncateText(formatGoogleCalendarEvents('this week', events), 3500));
+    } catch (error) {
+      await ctx.reply(`Calendar read failed: ${getErrorMessage(error)}`);
+    }
+  });
+
+  bot.hears(/^\/calendar-add(?:@\w+)?(?:\s|$)/, async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.reply('Cannot add calendar event without chat.');
+      return;
+    }
+
+    try {
+      const draft = parseCalendarAddDraft(getCommandPayload(ctx.text));
+      pendingCalendarAddsByChat.set(chatId, draft);
+      await ctx.reply(`Create calendar event?\n${draft.summary}\n${draft.start} - ${draft.end}`, {
+        reply_markup: {
+          inline_keyboard: [[
+            { text: 'Create', callback_data: 'calendaradd:confirm' },
+            { text: 'Cancel', callback_data: 'calendaradd:cancel' },
+          ]],
+        },
+      });
+    } catch (error) {
+      await ctx.reply(getErrorMessage(error));
+    }
+  });
+
+  bot.action(/^calendaradd:(confirm|cancel)$/, async (ctx) => {
+    const chatId = getChatId(ctx);
+    if (chatId === undefined) {
+      await ctx.answerCbQuery('Cannot use calendar without chat');
+      return;
+    }
+
+    const callbackQuery = ctx.callbackQuery;
+    if (!('data' in callbackQuery)) {
+      await ctx.answerCbQuery('Invalid calendar action');
+      return;
+    }
+
+    const action = callbackQuery.data.split(':')[1];
+    const draft = pendingCalendarAddsByChat.get(chatId);
+    if (draft === undefined) {
+      await ctx.answerCbQuery('No pending event');
+      return;
+    }
+
+    if (action === 'cancel') {
+      pendingCalendarAddsByChat.delete(chatId);
+      await ctx.answerCbQuery('Cancelled');
+      await ctx.reply('Calendar event cancelled.');
+      return;
+    }
+
+    const credentials = getGoogleCalendarCredentials();
+    if (credentials === undefined) {
+      await ctx.answerCbQuery('Calendar not configured');
+      await ctx.reply(formatGoogleCalendarSetupHelp());
+      return;
+    }
+
+    try {
+      const event = await createGoogleCalendarEvent(credentials, draft);
+      pendingCalendarAddsByChat.delete(chatId);
+      await ctx.answerCbQuery('Created');
+      await ctx.reply(`Created calendar event:\n${event.summary}\n${event.start}`);
+    } catch (error) {
+      await ctx.answerCbQuery('Failed');
+      await ctx.reply(`Calendar create failed: ${getErrorMessage(error)}`);
+    }
   });
 
   bot.command('new', async (ctx) => {
