@@ -3,10 +3,11 @@
   "version": "0.0.0",
   "private": true,
   "scripts": {
-    "pi-agent": "nx serve pi-agent",
-    "pi-agent:dev": "tsx watch --env-file=.env apps/pi-agent/src/main.ts",
-    "test": "nx test pi-agent",
-    "test:coverage": "nx test pi-agent"
+    "piclaw": "nx serve piclaw",
+    "piclaw:dev": "tsx watch --env-file=.env apps/piclaw/src/app/main.ts",
+    "piclaw:cli": "tsx --env-file=.env apps/piclaw/src/app/main.ts",
+    "test": "nx test piclaw",
+    "test:coverage": "nx test piclaw"
   },
   "dependencies": {
     "@earendil-works/pi-coding-agent": "^0.75.3",

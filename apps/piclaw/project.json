@@ -1,0 +1,25 @@
+{
+  "name": "piclaw",
+  "projectType": "application",
+  "sourceRoot": "apps/piclaw/src",
+  "targets": {
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bash -c 'while true; do tsx --env-file=.env apps/piclaw/src/app/main.ts; code=$?; if [ \"$code\" != \"75\" ]; then exit \"$code\"; fi; echo Reloading piclaw...; done'"
+      }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsc -p apps/piclaw/tsconfig.json --noEmit"
+      }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "vitest run --coverage"
+      }
+    }
+  }
+}

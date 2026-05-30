@@ -8,7 +8,7 @@
 !.env.example
 node_modules
 coverage/
-config/pi-agent.json
+config/piclaw.json
 .data/
 docs/
 .cronjobs/*/logs/

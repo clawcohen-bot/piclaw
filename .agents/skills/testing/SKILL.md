@@ -13,12 +13,12 @@ Style:
 Repo test stack:
 - Vitest
 - V8 coverage provider
-- Nx target: `pnpm nx test pi-agent`
+- Nx target: `pnpm nx test piclaw`
 - Shortcut: `pnpm test`
-- Coverage output: `coverage/pi-agent/`
+- Coverage output: `coverage/piclaw/`
 
 Rules:
-- Put tests in `apps/pi-agent/src/tests/` as `*.test.ts` and import source files with `../`.
+- Put tests in `apps/piclaw/src/tests/` as `*.test.ts` and import source files with `../`.
 - Use `node:fs/promises` plus temp directories for filesystem tests.
 - Restore `process.cwd()` after tests that change it.
 - Mock external process calls (`exec`, `execFile`) before importing modules that promisify them.
@@ -36,8 +36,8 @@ Coverage expectations:
 Before final reply, run:
 
 ```bash
-pnpm nx test pi-agent
-pnpm nx typecheck pi-agent
+pnpm nx test piclaw
+pnpm nx typecheck piclaw
 ```
 
 If a test cannot be added safely, explain the reason and the closest safe alternative.

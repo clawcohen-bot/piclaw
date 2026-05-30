@@ -36,10 +36,10 @@ Goal: keep long-form knowledge in a local Markdown vault that can be opened in O
 ## Current MVP files
 
 ```txt
-apps/pi-agent/src/wiki.ts
-apps/pi-agent/src/storage.ts
-apps/pi-agent/src/connectors/telegram/connector.ts
-apps/pi-agent/src/tests/wiki.test.ts
+apps/piclaw/src/features/wiki/wiki.ts
+apps/piclaw/src/core/storage.ts
+apps/piclaw/src/connectors/telegram/connector.ts
+apps/piclaw/src/features/wiki/wiki.test.ts
 ```
 
 ## Default vault path
@@ -214,7 +214,7 @@ Use the repo testing skill as the source of truth for tests.
 For wiki changes, add or update tests in:
 
 ```txt
-apps/pi-agent/src/tests/wiki.test.ts
+apps/piclaw/src/tests/wiki.test.ts
 ```
 
 Test with temp directories and avoid touching the real vault when possible.
@@ -222,8 +222,8 @@ Test with temp directories and avoid touching the real vault when possible.
 Before final reply after code changes, run:
 
 ```bash
-pnpm nx test pi-agent
-pnpm nx typecheck pi-agent
+pnpm nx test piclaw
+pnpm nx typecheck piclaw
 ```
 
 ## Final message after adding wiki skill/support

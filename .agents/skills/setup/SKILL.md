@@ -37,7 +37,7 @@ Piclaw stores local runtime data here:
 
 ```txt
 data/pi/
-data/pi-agent/
+data/piclaw/
 data/voice/
 ```
 
@@ -46,9 +46,9 @@ Important files:
 ```txt
 .env
 .env.example
-config/pi-agent.json
-config/pi-agent.example.json
-apps/pi-agent/README.md
+config/piclaw.json
+config/piclaw.example.json
+apps/piclaw/README.md
 README.md
 ```
 
@@ -83,7 +83,7 @@ If missing, create from examples:
 ```bash
 cd /home/shmulserver/piclaw-isolated
 cp -n .env.example .env
-cp -n config/pi-agent.example.json config/pi-agent.json
+cp -n config/piclaw.example.json config/piclaw.json
 ```
 
 ### 4. Choose connector
@@ -97,7 +97,7 @@ Which connector do you want?
 - both
 ```
 
-Then update `config/pi-agent.json`:
+Then update `config/piclaw.json`:
 
 - Telegram only:
 
@@ -185,7 +185,7 @@ Tell them to get the token from BotFather if needed.
 
 #### Allowed Telegram user id
 
-Check `config/pi-agent.json`.
+Check `config/piclaw.json`.
 
 If `telegram.allowedUserIds` is empty or still has the example id, ask the user for their Telegram numeric user id.
 
@@ -288,7 +288,7 @@ If the user sends secrets:
 
 #### Allowed Slack user id
 
-Check `config/pi-agent.json`.
+Check `config/piclaw.json`.
 
 If `slack.allowedUserIds` is empty, ask for the Slack member id.
 
@@ -405,7 +405,7 @@ Do not copy from `~/.pi` unless the user explicitly asks.
 Run:
 
 ```bash
-cd /home/shmulserver/piclaw-isolated && pnpm nx typecheck pi-agent
+cd /home/shmulserver/piclaw-isolated && pnpm nx typecheck piclaw
 ```
 
 Fix repo issues if needed. Do not change setup behavior without asking.
@@ -415,7 +415,7 @@ Fix repo issues if needed. Do not change setup behavior without asking.
 Run in foreground:
 
 ```bash
-cd /home/shmulserver/piclaw-isolated && pnpm nx serve pi-agent
+cd /home/shmulserver/piclaw-isolated && pnpm nx serve piclaw
 ```
 
 If this blocks, tell the user to test the enabled connector.
@@ -451,7 +451,7 @@ If one fails, debug only that failure next.
 
 Likely wrong `telegram.allowedUserIds`.
 
-Ask for the numeric Telegram user id and update `config/pi-agent.json`.
+Ask for the numeric Telegram user id and update `config/piclaw.json`.
 
 ### Telegram token invalid
 

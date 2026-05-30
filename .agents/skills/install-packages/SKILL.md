@@ -38,7 +38,7 @@ package.json
 pnpm-lock.yaml
 data/pi/settings.json
 data/pi/extensions/
-apps/pi-agent/src/pi-task.ts
+apps/piclaw/src/agent/pi-task.ts
 ```
 
 ## Install flow
@@ -61,7 +61,7 @@ Read:
 ```txt
 package.json
 data/pi/settings.json
-apps/pi-agent/src/pi-task.ts
+apps/piclaw/src/agent/pi-task.ts
 ```
 
 Check whether:
@@ -106,7 +106,7 @@ For the common web packages:
 
 ### 5. Wire tool allow-list
 
-Piclaw only exposes tools listed in `apps/pi-agent/src/pi-task.ts`.
+Piclaw only exposes tools listed in `apps/piclaw/src/agent/pi-task.ts`.
 
 If the package adds tools, add the tool names to the allow-list there.
 
@@ -139,7 +139,7 @@ Do not put local extensions in global Pi folders.
 Run:
 
 ```bash
-pnpm nx typecheck pi-agent
+pnpm nx typecheck piclaw
 ```
 
 If dependencies changed, also confirm install completed successfully.
@@ -189,6 +189,6 @@ Done ✅
 Added package install skill:
 - installs npm package locally
 - adds `npm:<package>` to `data/pi/settings.json`
-- wires package tools in `apps/pi-agent/src/pi-task.ts`
+- wires package tools in `apps/piclaw/src/agent/pi-task.ts`
 - runs typecheck
 ```

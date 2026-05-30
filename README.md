@@ -14,7 +14,7 @@ Runtime files are kept in:
 
 ```txt
 data/pi/                    # Pi auth, settings, sessions
-data/pi-agent/    # bot memory, audit log, queues
+data/piclaw/    # bot memory, audit log, queues
 data/voice/                 # optional voice model
 ```
 
@@ -25,7 +25,7 @@ data/voice/                 # optional voice model
 ```bash
 pnpm install
 cp .env.example .env
-cp config/pi-agent.example.json config/pi-agent.json
+cp config/piclaw.example.json config/piclaw.json
 ```
 
 Choose the connector you want.
@@ -36,7 +36,7 @@ For Telegram, set your bot token in `.env`:
 TELEGRAM_BOT_TOKEN=replace-me
 ```
 
-Then set your Telegram user id in `config/pi-agent.json`:
+Then set your Telegram user id in `config/piclaw.json`:
 
 ```json
 {
@@ -68,7 +68,7 @@ SLACK_APP_TOKEN=xapp-...
 SLACK_SIGNING_SECRET=...
 ```
 
-Then set your Slack member id in `config/pi-agent.json`:
+Then set your Slack member id in `config/piclaw.json`:
 
 ```json
 {
@@ -98,7 +98,7 @@ Or use provider env vars in `.env`, if your Pi provider supports them.
 ## Run
 
 ```bash
-pnpm nx serve pi-agent
+pnpm nx serve piclaw
 ```
 
 The `/reload` command works here too. The bot exits with reload code `75`, and the Nx serve command starts it again.
@@ -106,7 +106,7 @@ The `/reload` command works here too. The bot exits with reload code `75`, and t
 For development:
 
 ```bash
-pnpm pi-agent:dev
+pnpm piclaw:dev
 ```
 
 ## More docs
@@ -114,5 +114,5 @@ pnpm pi-agent:dev
 Bot details are in:
 
 ```txt
-apps/pi-agent/README.md
+apps/piclaw/README.md
 ```
