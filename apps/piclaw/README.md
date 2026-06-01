@@ -18,7 +18,7 @@ This copy does not use `~/.pi`.
 Pi data lives inside this repo:
 
 ```txt
-data/pi/
+data/piclaw/
   auth.json
   settings.json
   models.json
@@ -32,7 +32,7 @@ data/pi/
 Bot runtime data lives here:
 
 ```txt
-data/piclaw/
+data/runtime/
   audit.jsonl
   short-memory/
   memory/
@@ -107,7 +107,7 @@ Edit:
 Put Pi auth in:
 
 ```txt
-data/pi/auth.json
+data/piclaw/auth.json
 ```
 
 Or use provider env vars in `.env` if Pi supports them.

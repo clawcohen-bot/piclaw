@@ -1,6 +1,51 @@
 # Piclaw
 
-Telegram and Slack controlled Pi coding agent with isolated repo-local config.
+Piclaw is a minimal claw-style coding agent built on top of the Pi SDK.
+
+The goal is not to be secure, enterprise-ready, highly abstracted, or packed with integrations.
+
+The goal is to be simple, hackable, and very customizable.
+
+Piclaw gives you:
+
+- Telegram control
+- Slack control
+- basic session context
+- minimal memory
+- repo-local configuration
+- a simple way to talk to a Pi agent without choking the context
+
+Piclaw intentionally does not try to solve everything.
+
+It does not provide:
+
+- strong security
+- complex orchestration
+- Docker-first deployment
+- heavy abstractions
+- enterprise integration layers
+
+Those things are the responsibility of the user.
+
+The philosophy is:
+
+Clone the repo.
+Add credentials.
+Run the agent.
+That’s it.
+
+```bash
+pnpm install
+cp .env.example .env
+cp config/piclaw.example.json config/piclaw.json
+pnpm nx serve piclaw
+```
+
+Piclaw is the opposite of a secured orchestration framework.
+
+It is a small, direct, customizable bridge between Telegram/Slack and a Pi-powered coding agent.
+
+If you want something minimal that you can fully bend to your own workflow, Piclaw is for you.
 
 ## What this is
 
@@ -8,14 +53,14 @@ Piclaw lets an allowed Telegram or Slack user send tasks to a Pi agent.
 
 This repo is isolated: it does not use global Pi files from `~/.pi`.
 
-## Local runtime data
+## Local data
 
-Runtime files are kept in:
+Local files are kept in:
 
 ```txt
-data/pi/                    # Pi auth, settings, sessions
-data/piclaw/    # bot memory, audit log, queues
-data/voice/                 # optional voice model
+data/piclaw/     # Pi auth, settings, sessions
+data/runtime/    # bot memory, audit log, queues
+data/voice/      # optional voice model
 ```
 
 `data/` is gitignored and should not be committed.
@@ -90,7 +135,7 @@ To use both connectors, set both `enabled` values to `true`.
 Put Pi auth here:
 
 ```txt
-data/pi/auth.json
+data/piclaw/auth.json
 ```
 
 Or use provider env vars in `.env`, if your Pi provider supports them.

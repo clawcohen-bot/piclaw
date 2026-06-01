@@ -21,7 +21,7 @@ afterEach(async () => {
 
 describe('packages helpers', () => {
   it('returns empty packages for missing or invalid settings', async () => {
-    expect(getPiSettingsPath()).toBe(join(process.cwd(), 'data', 'pi', 'settings.json'));
+    expect(getPiSettingsPath()).toBe(join(process.cwd(), 'data', 'piclaw', 'settings.json'));
     expect(await getAvailablePackages()).toEqual([]);
     expect(await formatPackagesList()).toBe('Packages:\n  none');
 

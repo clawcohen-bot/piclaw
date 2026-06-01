@@ -32,8 +32,8 @@ afterEach(async () => {
 describe('storage paths', () => {
   it('builds app and pi storage paths under cwd', () => {
     const cwd = process.cwd();
-    expect(getAppDir()).toBe(join(cwd, 'data', 'piclaw'));
-    expect(getPiSdkDir()).toBe(join(cwd, 'data', 'pi'));
+    expect(getAppDir()).toBe(join(cwd, 'data', 'runtime'));
+    expect(getPiSdkDir()).toBe(join(cwd, 'data', 'piclaw'));
     expect(getObsidianVaultDir()).toBe(join(cwd, 'data', 'obsidian-vault'));
     expect(getMemoryPath()).toBe(join(getAppDir(), 'memory.md'));
     expect(getSessionSummaryPath()).toBe(join(getAppDir(), 'summary.md'));

@@ -102,7 +102,7 @@ describe('model selection helpers', () => {
   });
 
   it('reads, writes, and resolves selected models per chat', async () => {
-    expect(getChatModelPath(7)).toBe(join(process.cwd(), 'data', 'piclaw', 'models', '7.json'));
+    expect(getChatModelPath(7)).toBe(join(process.cwd(), 'data', 'runtime', 'models', '7.json'));
     expect(await readSelectedModelRef(7)).toBeUndefined();
     expect(await getSelectedModelText(7)).toBe('Pi default');
 

@@ -19,7 +19,7 @@ Goal: make package tools available to Piclaw safely and verify they load.
 ## Hard rules
 
 - Do not use global Pi files from `~/.pi`; this repo is isolated.
-- Keep Pi config in this repo under `data/pi/`.
+- Keep Pi config in this repo under `data/piclaw/`.
 - Do not print secrets or auth files.
 - Do not overwrite user config without reading it first.
 - Prefer exact, minimal edits.
@@ -36,8 +36,8 @@ Goal: make package tools available to Piclaw safely and verify they load.
 ```txt
 package.json
 pnpm-lock.yaml
-data/pi/settings.json
-data/pi/extensions/
+data/piclaw/settings.json
+data/piclaw/extensions/
 apps/piclaw/src/agent/pi-task.ts
 ```
 
@@ -60,14 +60,14 @@ Read:
 
 ```txt
 package.json
-data/pi/settings.json
+data/piclaw/settings.json
 apps/piclaw/src/agent/pi-task.ts
 ```
 
 Check whether:
 
 - package is already in `package.json`
-- package is already in `data/pi/settings.json` under `packages`
+- package is already in `data/piclaw/settings.json` under `packages`
 - package exposes tools that must be added to the Piclaw allow-list in `pi-task.ts`
 
 ### 3. Install npm dependency
@@ -82,7 +82,7 @@ Do not install globally.
 
 ### 4. Add package to Piclaw Pi settings
 
-Edit `data/pi/settings.json`.
+Edit `data/piclaw/settings.json`.
 
 Add package entries as:
 
@@ -128,7 +128,7 @@ Ask or inspect docs/source if tool names are unknown.
 For local Pi extensions, place files here:
 
 ```txt
-data/pi/extensions/
+data/piclaw/extensions/
 ```
 
 Use this only when the user asks for a custom extension or local tool.
@@ -188,7 +188,7 @@ Done ✅
 
 Added package install skill:
 - installs npm package locally
-- adds `npm:<package>` to `data/pi/settings.json`
+- adds `npm:<package>` to `data/piclaw/settings.json`
 - wires package tools in `apps/piclaw/src/agent/pi-task.ts`
 - runs typecheck
 ```

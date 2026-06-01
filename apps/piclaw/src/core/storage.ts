@@ -6,9 +6,9 @@ export type ConversationKey = number | string;
 const formatStorageKey = (key: ConversationKey): string =>
   typeof key === 'number' ? String(key) : encodeURIComponent(key);
 
-export const getAppDir = (): string => join(process.cwd(), 'data', 'piclaw');
+export const getAppDir = (): string => join(process.cwd(), 'data', 'runtime');
 
-export const getPiSdkDir = (): string => join(process.cwd(), 'data', 'pi');
+export const getPiSdkDir = (): string => join(process.cwd(), 'data', 'piclaw');
 
 export const getObsidianVaultDir = (): string => join(process.cwd(), 'data', 'obsidian-vault');
 

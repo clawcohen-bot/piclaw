@@ -77,7 +77,7 @@ describe('markdown memory and summaries', () => {
     await remember('keep this');
     const content = await readFile(getMemoryPath(), 'utf8');
     expect(content).toMatch(/^- \d{4}-\d{2}-\d{2}T.*: keep this\n$/);
-    expect(getAppDir()).toContain('piclaw');
+    expect(getAppDir()).toContain('runtime');
   });
 
   it('writes and clears saved markdown memory', async () => {

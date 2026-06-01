@@ -33,12 +33,12 @@ Default repo path:
 /home/shmulserver/piclaw-isolated
 ```
 
-Piclaw stores local runtime data here:
+Piclaw stores local data here:
 
 ```txt
-data/pi/
-data/piclaw/
-data/voice/
+data/piclaw/   # Pi config and skills
+data/runtime/  # bot runtime data
+data/voice/    # optional voice model
 ```
 
 Important files:
@@ -320,7 +320,7 @@ Piclaw must have model auth before the bot can answer.
 Preferred auth file:
 
 ```txt
-data/pi/auth.json
+data/piclaw/auth.json
 ```
 
 Check only whether it exists and is non-empty.
@@ -334,7 +334,7 @@ Model auth is missing.
 Choose one:
 - OpenAI ChatGPT Plus/Pro subscription login
 - OpenAI API key
-- copy existing Pi auth into data/pi/auth.json
+- copy existing Pi auth into data/piclaw/auth.json
 - configure it yourself
 ```
 
@@ -347,8 +347,8 @@ Guide them through isolated Pi login:
 
 ```bash
 cd /home/shmulserver/piclaw-isolated
-mkdir -p data/pi
-PI_CODING_AGENT_DIR="$PWD/data/pi" pnpm exec pi
+mkdir -p data/piclaw
+PI_CODING_AGENT_DIR="$PWD/data/piclaw" pnpm exec pi
 ```
 
 Then tell them to run inside Pi:
@@ -361,13 +361,13 @@ Then:
 
 - choose `ChatGPT Plus/Pro (Codex)`
 - complete browser login themselves
-- auth should be saved to `data/pi/auth.json`
+- auth should be saved to `data/piclaw/auth.json`
 
 After login, check without printing secrets:
 
 ```bash
 cd /home/shmulserver/piclaw-isolated
-test -s data/pi/auth.json && echo "Model auth exists"
+test -s data/piclaw/auth.json && echo "Model auth exists"
 ```
 
 #### OpenAI API key
@@ -394,7 +394,7 @@ If the user sends the API key:
 If the user wants to copy existing auth, tell them to place it at:
 
 ```txt
-data/pi/auth.json
+data/piclaw/auth.json
 ```
 
 Do not use `~/.pi` directly.
@@ -491,7 +491,7 @@ Ask which auth method they want:
 
 - OpenAI ChatGPT Plus/Pro subscription login
 - OpenAI API key in `.env`
-- copy existing auth to `data/pi/auth.json`
+- copy existing auth to `data/piclaw/auth.json`
 
 Never ask for an OpenAI password.
 Never print keys or auth files.
