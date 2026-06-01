@@ -1,6 +1,6 @@
 # Piclaw
 
-Telegram and Slack controlled Pi SDK agent with repo-local Pi config.
+Telegram and Slack controlled Pi SDK agent with repo-local Pi config. Slack support is currently beta.
 
 ## Access philosophy
 
@@ -157,6 +157,8 @@ At least one connector must be enabled.
 
 ## Slack app requirements
 
+Slack connector support is currently in beta.
+
 - Socket Mode enabled
 - app-level token scope: `connections:write`
 - bot scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`
@@ -216,6 +218,8 @@ pnpm piclaw:cli
 Telegram `/reload` exits with code `75`. The Nx serve target restarts the bot when it sees that code.
 
 ## Slack usage
+
+Slack connector support is currently in beta.
 
 - DM the bot: `hi`
 - Or mention it in a channel: `@your-bot hi`

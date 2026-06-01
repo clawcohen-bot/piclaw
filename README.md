@@ -34,7 +34,7 @@ The basic flow is:
 ## Features
 
 - Telegram connector
-- Slack connector through Socket Mode
+- Slack connector through Socket Mode (beta)
 - optional local dev CLI connector
 - allowed-user access control for Telegram and Slack
 - per-chat short context
@@ -120,6 +120,8 @@ TELEGRAM_BOT_TOKEN=replace-me
 `telegram.enabled` is optional. If it is missing, Telegram is enabled.
 
 ## Slack setup
+
+Slack connector support is currently in beta.
 
 1. Create a Slack app.
 2. Enable Socket Mode.
@@ -302,6 +304,8 @@ Telegram supports:
 - voice messages
 
 ## Slack usage
+
+Slack connector support is currently in beta.
 
 Slack does not implement the Telegram command set.
 
