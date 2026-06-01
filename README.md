@@ -2,7 +2,6 @@
 
 Piclaw is a minimal claw-style coding agent built on top of the Pi SDK.
 
-The goal is not to be secure, enterprise-ready, highly abstracted, or packed with integrations.
 
 The goal is to be simple, hackable, and very customizable.
 
