@@ -8,14 +8,14 @@ Piclaw trusts the owner by default.
 
 - `rootPath` is the starting/default directory.
 - It is not a sandbox or access boundary.
-- The agent can use absolute paths for full system access.
+- In agent mode, the agent has write and shell tools.
+- The agent can use absolute paths according to the permissions of the running process.
+- Ask mode limits the exposed tools to read/search tools, but it is still not a strong sandbox.
 - Extra restrictions should be opt-in.
 
 ## Pi data
 
-This copy does not use `~/.pi`.
-
-Pi data lives inside this repo:
+This copy stores Pi data inside the repo:
 
 ```txt
 data/piclaw/
@@ -34,8 +34,24 @@ Bot runtime data lives here:
 ```txt
 data/runtime/
   audit.jsonl
+  memory.md
+  summary.md
   short-memory/
-  memory/
+  modes/
+  models/
+  usage-warnings/
+```
+
+Wiki data lives here:
+
+```txt
+data/obsidian-vault/
+```
+
+Optional voice model files can live here:
+
+```txt
+data/voice/
 ```
 
 `data/` is gitignored.
@@ -45,19 +61,18 @@ data/runtime/
 Create repo-local config:
 
 ```bash
-mkdir -p config
 cp config/piclaw.example.json config/piclaw.json
 ```
 
 Secrets stay in `.env`.
 
-Telegram:
+Telegram secret:
 
 ```bash
 TELEGRAM_BOT_TOKEN=replace-me
 ```
 
-Slack:
+Slack secrets:
 
 ```bash
 SLACK_BOT_TOKEN=xoxb-...
@@ -65,15 +80,17 @@ SLACK_APP_TOKEN=xapp-...
 SLACK_SIGNING_SECRET=...
 ```
 
-Slack app requirements:
+`SLACK_SIGNING_SECRET` is optional in Socket Mode. If missing, Piclaw uses `socket-mode` internally.
 
-- Socket Mode enabled
-- app-level token scope: `connections:write`
-- bot scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`
-- bot events: `app_mention`, `message.im`
-- reinstall the app after changing scopes or events
+Google Calendar secrets:
 
-Edit:
+```bash
+GOOGLE_CALENDAR_CLIENT_ID=...
+GOOGLE_CALENDAR_CLIENT_SECRET=...
+GOOGLE_CALENDAR_REDIRECT_URI=http://localhost:42813/oauth2callback
+```
+
+Minimal Telegram config:
 
 ```json
 {
@@ -81,14 +98,40 @@ Edit:
     "enabled": true,
     "allowedUserIds": [123456789]
   },
-  "slack": {
+  "rootPath": ".",
+  "server": {
+    "services": [],
+    "logFiles": []
+  }
+}
+```
+
+Slack config:
+
+```json
+{
+  "telegram": {
     "enabled": false,
     "allowedUserIds": []
+  },
+  "slack": {
+    "enabled": true,
+    "allowedUserIds": ["U012ABCDEF"]
   },
   "rootPath": ".",
   "server": {
     "services": [],
     "logFiles": []
+  }
+}
+```
+
+Optional config fields:
+
+```json
+{
+  "devCli": {
+    "enabled": false
   },
   "voice": {
     "whisperCommand": "whisper-cli",
@@ -100,9 +143,27 @@ Edit:
 }
 ```
 
+Defaults:
+
+- `telegram.enabled`: true
+- `slack.enabled`: false
+- `slack.allowedUserIds`: []
+- `devCli.enabled`: false
+- voice settings as shown above
+
 `rootPath` may be relative or absolute. It only sets the bot's default working directory.
 
-## Auth
+At least one connector must be enabled.
+
+## Slack app requirements
+
+- Socket Mode enabled
+- app-level token scope: `connections:write`
+- bot scopes: `app_mentions:read`, `chat:write`, `im:history`, `im:read`
+- bot events: `app_mention`, `message.im`
+- reinstall the app after changing scopes or events
+
+## Auth and models
 
 Put Pi auth in:
 
@@ -110,20 +171,49 @@ Put Pi auth in:
 data/piclaw/auth.json
 ```
 
-Or use provider env vars in `.env` if Pi supports them.
+Or use Telegram auth commands:
+
+- `/login`
+- `/logout`
+- `/auth-status`
+- `/auth-list`
+- `/model`
+
+Provider env vars in `.env` may also work if the Pi provider supports them.
 
 ## Run
 
+Install dependencies:
+
 ```bash
 pnpm install
+```
+
+Start with Nx reload loop:
+
+```bash
 pnpm nx serve piclaw
 ```
 
-Hot reload:
+Shortcut:
+
+```bash
+pnpm piclaw
+```
+
+Hot reload/watch mode:
 
 ```bash
 pnpm piclaw:dev
 ```
+
+Run once without Nx reload loop:
+
+```bash
+pnpm piclaw:cli
+```
+
+Telegram `/reload` exits with code `75`. The Nx serve target restarts the bot when it sees that code.
 
 ## Slack usage
 
@@ -131,17 +221,42 @@ pnpm piclaw:dev
 - Or mention it in a channel: `@your-bot hi`
 - Invite the bot to channels where you want mentions to work.
 
+Slack accepts tasks from allowed users. It does not implement the Telegram command set.
+
 ## Telegram commands
 
 - `/start`
 - `/remember <text>`
 - `/memory`
-- `/forget` (clear saved long memory)
+- `/forget`
+- `/new`
+- `/usage`
 - `/status`
-- `/reload`
+- `/skills`
+- `/mode`
+- `/mode agent`
+- `/mode ask`
+- `/model`
+- `/login`
+- `/logout`
+- `/auth-status`
+- `/auth-list`
+- `/cancel-auth`
+- `/wiki`
+- `/wiki-add <text>`
+- `/wiki-search <query>`
+- `/wiki-open <query>`
+- `/calendar`
+- `/calendar-connect`
+- `/calendar-code <redirect-url-or-code>`
+- `/calendar-disconnect`
+- `/calendar-today`
+- `/calendar-week`
+- `/calendar-add title | start ISO | end ISO`
 - `/cancel`
-- Voice message
+- `/reload`
 - `/server-status`
 - `/server-services`
-- `/server-logs <name-or-path>`
+- `/server-logs <name>`
 - `/server-restart <service>`
+- voice messages
