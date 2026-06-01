@@ -1,6 +1,6 @@
-# Piclaw
+# Piclaw - your minimal personal agent
 
-Piclaw is a minimal claw-style coding agent built on top of the Pi SDK.
+Piclaw is a minimal personal AI agent built on top of the Pi SDK.
 
 
 The goal is to be simple, hackable, and very customizable.
