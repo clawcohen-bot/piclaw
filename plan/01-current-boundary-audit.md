@@ -22,7 +22,7 @@
 - `apps/piclaw/src/connectors/telegram/telegram-context.ts` - Telegram metadata helpers.
 - `apps/piclaw/src/connectors/telegram/telegram-text.ts` - Telegram text helpers.
 - `apps/piclaw/src/connectors/telegram/connector.ts` - thin Telegram startup/auth/launch adapter.
-- `apps/piclaw/src/connectors/telegram/runtime-handlers.ts` - Telegram runtime bridge for command dispatch, callback dispatch, voice event translation, and agent task submission.
+- `apps/piclaw/src/connectors/telegram/runtime-handlers.ts` - Telegram runtime bridge for command dispatch, callback dispatch, voice event translation, and agent task submission; feature command/callback logic is delegated to extensions.
 
 ## Extension/package candidates
 
@@ -35,7 +35,7 @@
 
 ## Keep with caution
 
-- `apps/piclaw/src/memory/*` - storage primitives are core-like, but automatic personal memory behavior should become extension-driven.
+- `apps/piclaw/src/memory/*` - storage primitives used by the focused memory extension and agent context builder.
 - `connectors/telegram/runtime-handlers.ts` should be reduced over time by moving Telegram-specific command presentation into focused extensions or connector-neutral response types.
 
 ## Migration status
@@ -51,6 +51,6 @@
 - Telegram inline button callbacks now route through the runtime callback action registry instead of direct `bot.action(...)` handlers.
 - Removed the old `features/telegram/telegram-feature-handlers.ts` compatibility layer.
 - Google Calendar `/calendar-add` confirmation buttons are now owned by `packages/piclaw-calendar-google` callback actions.
-- Auth, model, and server-admin commands now live in focused extensions under `apps/piclaw/src/extensions`.
-- Telegram-specific busy callback implementations and agent task submission still live in the Telegram runtime bridge until those features move into focused extensions.
-- Remaining work: move memory compatibility commands into a focused extension and keep reducing the Telegram runtime bridge.
+- Auth, model, server-admin, memory, app-control, and agent-control commands/callbacks now live in focused extensions under `apps/piclaw/src/extensions`.
+- Telegram busy callback behavior is registered through the agent-control extension; Telegram only renders the busy choice buttons from runner callbacks.
+- Remaining work: consider a connector-neutral response/presentation layer so Telegram can delegate voice/status messages, typing, tool-progress messages, and agent task submission even further.

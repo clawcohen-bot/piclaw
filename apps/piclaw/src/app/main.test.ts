@@ -15,8 +15,10 @@ describe('main module safety', () => {
     expect(telegramSource).toContain('registerTelegramRuntimeHandlers(bot, config, context.runtime)');
     expect(telegramSource).not.toContain("bot.command('status'");
     expect(telegramSource).not.toContain("bot.on('voice'");
-    expect(telegramRuntimeSource).toContain("registerTelegramCommand('status'");
-    expect(telegramRuntimeSource).toContain('registerTelegramCallback');
+    expect(telegramRuntimeSource).toContain('registerAppControlExtension');
+    expect(telegramRuntimeSource).toContain('registerAgentControlExtension');
+    expect(telegramRuntimeSource).not.toContain('registerTelegramCommand');
+    expect(telegramRuntimeSource).not.toContain('registerTelegramCallback');
     expect(telegramRuntimeSource).not.toContain("bot.command('status'");
     expect(telegramRuntimeSource).not.toContain('bot.action');
     expect(telegramRuntimeSource).toContain("bot.on('voice'");
