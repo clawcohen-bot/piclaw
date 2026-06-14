@@ -1,19 +1,10 @@
 import { createAgentRunner, type AgentRunnerCallbacks } from '../../agent/agent-runner';
 import { formatAgentMode, isAgentMode, readAgentMode, writeAgentMode } from '../../agent/mode';
 import {
-  type AuthProviderOption,
-  findAuthProviderOption,
   formatModel,
   formatModelLabel,
-  getAllAuthProviderOptions,
   getAvailableModels,
-  getConfiguredProviderCount,
-  getConnectedAuthProviderStatuses,
-  getSafeAuthStatus,
   getSelectedModelText,
-  loginOAuthProvider,
-  logoutAuthProvider,
-  setApiKeyCredential,
   writeSelectedModel,
 } from '../../agent/model';
 import { isBusy } from '../../agent/task-state';
@@ -56,24 +47,6 @@ const replyTelegramHtml = async (ctx: Context, text: string): Promise<void> => {
   await ctx.reply(text, { parse_mode: 'HTML' });
 };
 
-type PendingAuthInput = {
-  kind: 'api_key' | 'oauth_input';
-  providerId: string;
-  label: string;
-  secret: boolean;
-  resolve: (value: string) => void;
-  reject?: (error: Error) => void;
-  abortController?: AbortController;
-};
-
-const chunkRows = <T>(items: T[], size: number): T[][] => {
-  const rows: T[][] = [];
-  for (let index = 0; index < items.length; index += size) {
-    rows.push(items.slice(index, index + size));
-  }
-  return rows;
-};
-
 const getTelegramMessageId = (value: unknown): number | undefined => {
   if (typeof value !== 'object' || value === null || !('message_id' in value)) {
     return undefined;
@@ -86,9 +59,6 @@ const getTelegramMessageId = (value: unknown): number | undefined => {
 
   return messageId;
 };
-
-const isAuthProviderAuthType = (value: string | undefined): value is AuthProviderOption['authType'] =>
-  value === 'oauth' || value === 'api_key';
 
 const getTelegramCommandName = (text: string): string | undefined => {
   const match = /^\/([^@\s]+)(?:@\w+)?(?:\s|$)/.exec(text.trim());
@@ -132,8 +102,6 @@ const startTypingIndicator = (ctx: TypingContext): (() => void) => {
 
 export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: AppConfig, runtime: PiclawRuntime): void => {
   const agentRunner = createAgentRunner(config);
-  const pendingAuthByChat = new Map<number, PendingAuthInput>();
-
   type TelegramCommandContext = Context & { text: string };
   type TelegramCommandHandler = (ctx: TelegramCommandContext, input: CommandHandlerInput) => Promise<void> | void;
   type TelegramCallbackContext = Context & { data: string };
@@ -201,261 +169,6 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
 
   registerTelegramCommand('skills', '', async (ctx) => {
     await replyTelegramHtml(ctx, formatSkillsTelegramHtml(config.rootPath));
-  });
-
-  const formatAuthStatus = (providerId: string): string => {
-    const status = getSafeAuthStatus(providerId);
-    return [
-      `${status.name} (${status.provider})`,
-      `Connected: ${status.configured ? 'yes' : 'no'}`,
-      `Type: ${status.authType ?? 'unknown'}`,
-      `Source: ${status.source ?? 'none'}`,
-      `Models: ${status.modelCount}`,
-    ].join('\n');
-  };
-
-  const showLoginMenu = async (ctx: Context): Promise<void> => {
-    const options = getAllAuthProviderOptions();
-    await ctx.reply(`Choose auth provider:\n\nConfigured providers: ${getConfiguredProviderCount()}`, {
-      reply_markup: {
-        inline_keyboard: chunkRows(options, 1).map((row) =>
-          row.map((option) => ({
-            text: `${option.authType === 'oauth' ? 'Subscription' : 'API key'}: ${option.name}`.slice(0, 64),
-            callback_data: `authlogin:${option.authType}:${option.id}`,
-          })),
-        ),
-      },
-    });
-  };
-
-  const waitForAuthInput = async (
-    chatId: number,
-    input: Omit<PendingAuthInput, 'resolve'>,
-  ): Promise<string> =>
-    new Promise((resolve, reject) => {
-      pendingAuthByChat.set(chatId, { ...input, resolve, reject });
-    });
-
-  const startApiKeyLogin = async (ctx: Context, chatId: number, option: AuthProviderOption): Promise<void> => {
-    if (pendingAuthByChat.has(chatId)) {
-      await ctx.reply('Auth is already waiting for input. Use /cancel-auth first.');
-      return;
-    }
-
-    try {
-      await ctx.reply(`Send the API key for ${option.name}.\nI will try to delete your key message.`);
-      const apiKey = await waitForAuthInput(chatId, {
-        kind: 'api_key',
-        providerId: option.id,
-        label: option.name,
-        secret: true,
-      });
-      setApiKeyCredential(option.id, apiKey.trim());
-      await ctx.reply(
-        `Saved ${option.name}.\nConfigured providers: ${getConfiguredProviderCount()}\nAvailable models: ${getAvailableModels().length}\nUse /model to choose.`,
-      );
-    } catch (error) {
-      await ctx.reply(`Auth cancelled: ${getErrorMessage(error)}`);
-    } finally {
-      pendingAuthByChat.delete(chatId);
-    }
-  };
-
-  const startOAuthLogin = async (ctx: Context, chatId: number, option: AuthProviderOption): Promise<void> => {
-    if (pendingAuthByChat.has(chatId)) {
-      await ctx.reply('Auth is already waiting for input. Use /cancel-auth first.');
-      return;
-    }
-
-    const abortController = new AbortController();
-    await ctx.reply(`Starting login for ${option.name}...`);
-    try {
-      await loginOAuthProvider(option.id, {
-        onAuth: (info) => {
-          void ctx.reply([`Login URL for ${option.name}:`, info.url, '', info.instructions ?? 'Open the URL and finish login.'].join('\n'));
-        },
-        onPrompt: async (prompt) => {
-          await ctx.reply(`${prompt.message}${prompt.placeholder ? `\n${prompt.placeholder}` : ''}`);
-          return waitForAuthInput(chatId, {
-            kind: 'oauth_input',
-            providerId: option.id,
-            label: option.name,
-            secret: false,
-            abortController,
-          });
-        },
-        onProgress: (message) => {
-          void ctx.reply(message);
-        },
-        onManualCodeInput: async () => {
-          await ctx.reply('Paste the redirect URL/code here, or complete login in browser.');
-          return waitForAuthInput(chatId, {
-            kind: 'oauth_input',
-            providerId: option.id,
-            label: option.name,
-            secret: true,
-            abortController,
-          });
-        },
-        onSelect: async (prompt) => {
-          await ctx.reply(
-            [prompt.message, ...prompt.options.map((selectOption) => `${selectOption.id}: ${selectOption.label}`), 'Send the option id.'].join('\n'),
-          );
-          return waitForAuthInput(chatId, {
-            kind: 'oauth_input',
-            providerId: option.id,
-            label: option.name,
-            secret: false,
-            abortController,
-          });
-        },
-        signal: abortController.signal,
-      });
-      await ctx.reply(
-        `Logged in to ${option.name}.\nConfigured providers: ${getConfiguredProviderCount()}\nAvailable models: ${getAvailableModels().length}\nUse /model to choose.`,
-      );
-    } catch (error) {
-      await ctx.reply(`Login failed: ${getErrorMessage(error)}`);
-    } finally {
-      pendingAuthByChat.delete(chatId);
-    }
-  };
-
-  const startLogin = async (
-    ctx: Context,
-    chatId: number,
-    providerId: string,
-    authType?: AuthProviderOption['authType'],
-  ): Promise<void> => {
-    const option = findAuthProviderOption(providerId, authType);
-    if (option === undefined) {
-      await ctx.reply('Unknown auth provider. Use /login to see options.');
-      return;
-    }
-
-    if (option.authType === 'api_key') {
-      await startApiKeyLogin(ctx, chatId, option);
-      return;
-    }
-
-    await startOAuthLogin(ctx, chatId, option);
-  };
-
-  const runLoginInBackground = (ctx: Context, chatId: number, providerId: string, authType?: AuthProviderOption['authType']): void => {
-    void startLogin(ctx, chatId, providerId, authType).catch((error: unknown) => {
-      void ctx.reply(`Login failed: ${getErrorMessage(error)}`);
-    });
-  };
-
-  registerTelegramCommand('login', '', async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.reply('Cannot login without chat.');
-      return;
-    }
-
-    const payload = getCommandPayload(ctx.text).trim();
-    if (payload === '') {
-      await showLoginMenu(ctx);
-      return;
-    }
-
-    runLoginInBackground(ctx, chatId, payload);
-  });
-
-  registerTelegramCallback('authlogin', 'Start auth login from an inline button.', /^authlogin:(oauth|api_key):.+$/, async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.answerCbQuery('Invalid login action');
-      return;
-    }
-
-    const [, authType, providerId] = ctx.data.split(':');
-    if (!isAuthProviderAuthType(authType) || providerId === undefined) {
-      await ctx.answerCbQuery('Invalid login action');
-      return;
-    }
-
-    await ctx.answerCbQuery('Selected');
-    runLoginInBackground(ctx, chatId, providerId, authType);
-  });
-
-  registerTelegramCommand('logout', '', async (ctx) => {
-    const payload = getCommandPayload(ctx.text).trim();
-    if (payload === '') {
-      const statuses = getConnectedAuthProviderStatuses();
-      if (statuses.length === 0) {
-        await ctx.reply('No configured auth providers.');
-        return;
-      }
-      await ctx.reply('Choose provider to logout:', {
-        reply_markup: {
-          inline_keyboard: statuses.map((status) => [
-            { text: `${status.name} (${status.provider})`.slice(0, 64), callback_data: `authlogout:${status.provider}` },
-          ]),
-        },
-      });
-      return;
-    }
-
-    await ctx.reply(`Confirm logout from ${payload}?`, {
-      reply_markup: {
-        inline_keyboard: [[{ text: 'Confirm logout', callback_data: `authlogout:${payload}` }]],
-      },
-    });
-  });
-
-  registerTelegramCallback('authlogout', 'Logout from an auth provider from an inline button.', /^authlogout:.+$/, async (ctx) => {
-    const providerId = ctx.data.slice('authlogout:'.length);
-    logoutAuthProvider(providerId);
-    await ctx.answerCbQuery('Logged out');
-    await ctx.reply(
-      `Logged out from ${providerId}.\nConfigured providers: ${getConfiguredProviderCount()}\nAvailable models: ${getAvailableModels().length}`,
-    );
-  });
-
-  registerTelegramCommand('auth-status', '', async (ctx) => {
-    const payload = getCommandPayload(ctx.text).trim();
-    if (payload !== '') {
-      await ctx.reply(formatAuthStatus(payload));
-      return;
-    }
-
-    const statuses = getConnectedAuthProviderStatuses();
-    if (statuses.length === 0) {
-      await ctx.reply(`No configured auth providers.\nAvailable models: ${getAvailableModels().length}`);
-      return;
-    }
-
-    await ctx.reply(
-      [`Configured providers: ${statuses.length}`, `Available models: ${getAvailableModels().length}`, '', ...statuses.map((status) => `${status.configured ? '✅' : '❌'} ${status.name} (${status.provider}) - ${status.modelCount} models`)].join('\n'),
-    );
-  });
-
-  registerTelegramCommand('auth-list', '', async (ctx) => {
-    const options = getAllAuthProviderOptions();
-    await ctx.reply(
-      [`Auth options: ${options.length}`, ...options.map((option) => `- ${option.authType === 'oauth' ? 'subscription' : 'api key'}: ${option.name} (${option.id})`)].join('\n'),
-    );
-  });
-
-  registerTelegramCommand('cancel-auth', '', async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.reply('Cannot cancel auth without chat.');
-      return;
-    }
-
-    const pending = pendingAuthByChat.get(chatId);
-    if (pending === undefined) {
-      await ctx.reply('No pending auth.');
-      return;
-    }
-
-    pending.abortController?.abort();
-    pending.reject?.(new Error('Auth cancelled'));
-    pendingAuthByChat.delete(chatId);
-    await ctx.reply('Cancelled auth.');
   });
 
   registerTelegramCommand('mode', '', async (ctx) => {
@@ -803,19 +516,28 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
       return;
     }
 
-    const pendingAuth = pendingAuthByChat.get(chatId);
-    if (pendingAuth !== undefined) {
-      pendingAuthByChat.delete(chatId);
-      if (pendingAuth.secret) {
-        try {
-          await ctx.telegram.deleteMessage(chatId, messageId);
-        } catch {
-          // Ignore Telegram delete failures.
+    const authInputTool = runtime.tools.get('auth.handle-text-input');
+    if (authInputTool !== undefined) {
+      const result = await runtime.tools.call('auth.handle-text-input', {
+        conversationId: String(chatId),
+        messageId: String(messageId),
+        text,
+        context: ctx,
+      }) as { handled?: boolean; deleteMessage?: boolean; response?: string };
+
+      if (result.handled === true) {
+        if (result.deleteMessage === true) {
+          try {
+            await ctx.telegram.deleteMessage(chatId, messageId);
+          } catch {
+            // Ignore Telegram delete failures.
+          }
         }
+        if (typeof result.response === 'string' && result.response.length > 0) {
+          await ctx.reply(result.response);
+        }
+        return;
       }
-      pendingAuth.resolve(text);
-      await ctx.reply(pendingAuth.kind === 'api_key' ? 'Received key. Saving...' : 'Received auth input. Continuing...');
-      return;
     }
 
     if (text.startsWith('/')) {
