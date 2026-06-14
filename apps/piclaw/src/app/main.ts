@@ -7,12 +7,14 @@ import { createPiclawRuntime } from '../core/runtime';
 import { getDefaultExtensionPaths, loadExtensions } from '../core/extensions';
 import { discoverPiclawPackages } from '../features/packages/package-discovery';
 import { registerAuthExtension } from '../extensions/auth-extension';
+import { registerModelExtension } from '../extensions/model-extension';
 
 const main = async (): Promise<void> => {
   await ensureAppDirs();
   const config = await loadConfig();
   const runtime = createPiclawRuntime(config);
   registerAuthExtension(runtime.api);
+  registerModelExtension(runtime.api);
   const packageResources = await discoverPiclawPackages(config.packages);
   await loadExtensions([
     ...getDefaultExtensionPaths(config.rootPath),

@@ -1,12 +1,6 @@
 import { createAgentRunner, type AgentRunnerCallbacks } from '../../agent/agent-runner';
 import { formatAgentMode, isAgentMode, readAgentMode, writeAgentMode } from '../../agent/mode';
-import {
-  formatModel,
-  formatModelLabel,
-  getAvailableModels,
-  getSelectedModelText,
-  writeSelectedModel,
-} from '../../agent/model';
+import { getSelectedModelText } from '../../agent/model';
 import { isBusy } from '../../agent/task-state';
 import { clearWarnedUsageLevels, formatContextUsage } from '../../agent/usage';
 import { type AppConfig, getConfigPath } from '../../core/config';
@@ -192,49 +186,6 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
 
     await writeAgentMode(chatId, payload);
     await ctx.reply(`Mode changed to ${formatAgentMode(payload)}.`);
-  });
-
-  registerTelegramCommand('model', '', async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.reply('Cannot use /model without chat.');
-      return;
-    }
-
-    const models = getAvailableModels();
-    if (models.length === 0) {
-      await ctx.reply('No available models found. Configure Pi auth first.');
-      return;
-    }
-
-    const current = await getSelectedModelText(chatId);
-    await ctx.reply(`Current model: ${current}\n\nChoose a model:`, {
-      reply_markup: {
-        inline_keyboard: models.map((model, index) => [
-          { text: formatModelLabel(model).slice(0, 64), callback_data: `model:${index}` },
-        ]),
-      },
-    });
-  });
-
-  registerTelegramCallback('model', 'Select model from an inline button.', /^model:\d+$/, async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.answerCbQuery('Cannot choose model without chat');
-      return;
-    }
-
-    const index = Number(ctx.data.split(':')[1]);
-    const model = getAvailableModels()[index];
-    if (model === undefined) {
-      await ctx.answerCbQuery('Model not found');
-      await ctx.reply('Model list changed. Run /model again.');
-      return;
-    }
-
-    await writeSelectedModel(chatId, model);
-    await ctx.answerCbQuery('Model changed');
-    await ctx.reply(`Model changed to ${formatModel(model)}.`);
   });
 
   registerTelegramCommand('reload', '', async (ctx) => {

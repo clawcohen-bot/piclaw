@@ -51,5 +51,6 @@
 - Telegram inline button callbacks now route through the runtime callback action registry instead of direct `bot.action(...)` handlers.
 - Removed the old `features/telegram/telegram-feature-handlers.ts` compatibility layer.
 - Google Calendar `/calendar-add` confirmation buttons are now owned by `packages/piclaw-calendar-google` callback actions.
-- Telegram-specific auth/model/busy callback implementations and agent task submission still live in the Telegram runtime bridge until those features move into focused extensions.
-- Remaining work: move server/memory/auth/model compatibility commands into focused extensions and keep reducing the Telegram runtime bridge.
+- Auth and model commands/callbacks now live in focused extensions under `apps/piclaw/src/extensions`.
+- Telegram-specific busy callback implementations and agent task submission still live in the Telegram runtime bridge until those features move into focused extensions.
+- Remaining work: move server/memory compatibility commands into focused extensions and keep reducing the Telegram runtime bridge.
