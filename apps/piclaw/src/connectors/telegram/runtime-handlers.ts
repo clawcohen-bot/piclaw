@@ -18,9 +18,8 @@ import {
   remember,
 } from '../../memory/memory';
 import { helpText } from '../../messages/commands';
-import { codeBlock, telegramHtmlFromMarkdown } from '../../messages/format';
+import { telegramHtmlFromMarkdown } from '../../messages/format';
 import { getCommandPayload, truncateText } from '../../messages/text';
-import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from '../../server/server';
 import { getChatId } from './telegram-context';
 import { getMessageId, getMessageText } from './telegram-text';
 import { Context, Telegraf } from 'telegraf';
@@ -239,47 +238,6 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
 
     const { usage, model } = await agentRunner.getCurrentContextUsage(chatId);
     await ctx.reply(formatContextUsage(usage, model));
-  });
-
-  registerTelegramCommand('server-status', '', async (ctx) => {
-    try {
-      await replyTelegramHtml(ctx, codeBlock(await getServerStatus()));
-    } catch (error) {
-      await ctx.reply(`Server status failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('server-services', '', async (ctx) => {
-    await ctx.reply(formatServices(config));
-  });
-
-  registerTelegramCommand('server-logs', '', async (ctx) => {
-    const value = getCommandPayload(ctx.text);
-    if (value === '') {
-      await ctx.reply('Use /server-logs <name>');
-      return;
-    }
-
-    try {
-      await replyTelegramHtml(ctx, codeBlock(await readAllowedLogs(config, value)));
-    } catch (error) {
-      await ctx.reply(`Server logs failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('server-restart', '', async (ctx) => {
-    const value = getCommandPayload(ctx.text);
-    if (value === '') {
-      await ctx.reply('Use /server-restart <service>');
-      return;
-    }
-
-    try {
-      await ctx.reply(`Restarting ${value}...`);
-      await ctx.reply(await restartAllowedService(config, value));
-    } catch (error) {
-      await ctx.reply(`Server restart failed: ${getErrorMessage(error)}`);
-    }
   });
 
   registerTelegramCommand('cancel', '', async (ctx) => {

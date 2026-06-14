@@ -29,7 +29,7 @@
 - `apps/piclaw/src/features/wiki/*` - implementation used by `packages/piclaw-wiki` extension commands/tools.
 - `apps/piclaw/src/features/calendar/*` - implementation used by `packages/piclaw-calendar-google` extension commands/tools.
 - `apps/piclaw/src/features/voice/*` - implementation used by `packages/piclaw-voice` extension tools.
-- `apps/piclaw/src/server/*` -> server-admin extension/package.
+- `apps/piclaw/src/server/*` - implementation used by the focused server-admin extension.
 - `apps/piclaw/src/features/packages/*` -> package discovery is core-adjacent; package UI can be an extension later.
 - `apps/piclaw/src/features/skills/*` -> skill discovery is core; UI/status commands can be extensions later.
 
@@ -51,6 +51,6 @@
 - Telegram inline button callbacks now route through the runtime callback action registry instead of direct `bot.action(...)` handlers.
 - Removed the old `features/telegram/telegram-feature-handlers.ts` compatibility layer.
 - Google Calendar `/calendar-add` confirmation buttons are now owned by `packages/piclaw-calendar-google` callback actions.
-- Auth and model commands/callbacks now live in focused extensions under `apps/piclaw/src/extensions`.
+- Auth, model, and server-admin commands now live in focused extensions under `apps/piclaw/src/extensions`.
 - Telegram-specific busy callback implementations and agent task submission still live in the Telegram runtime bridge until those features move into focused extensions.
-- Remaining work: move server/memory compatibility commands into focused extensions and keep reducing the Telegram runtime bridge.
+- Remaining work: move memory compatibility commands into a focused extension and keep reducing the Telegram runtime bridge.
