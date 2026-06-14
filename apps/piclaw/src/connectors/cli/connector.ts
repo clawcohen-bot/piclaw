@@ -4,7 +4,7 @@ import { stdin as input, stdout as output } from 'node:process';
 import { createAgentRunner, type AgentRunnerCallbacks } from '../../agent/agent-runner';
 import type { AppConfig } from '../../core/config';
 import { truncateText } from '../../messages/text';
-import type { Connector } from '../types';
+import type { Connector, ConnectorContext } from '../types';
 
 const conversationKey = 'dev-cli-local';
 const replyLimit = 3500;
@@ -57,14 +57,15 @@ const printStatus = (config: AppConfig, runner: ReturnType<typeof createAgentRun
 };
 
 export const createCliConnector = (config: AppConfig): Connector => ({
-  start: () => startCliConnector(config),
+  name: 'dev-cli',
+  start: (context?: ConnectorContext) => startCliConnector(config, context),
   stop: () => {
     activeInterface?.close();
   },
 });
 
-export const startCliConnector = async (config: AppConfig): Promise<void> => {
-  const runner = createAgentRunner(config);
+export const startCliConnector = async (config: AppConfig, context?: ConnectorContext): Promise<void> => {
+  const runner = createAgentRunner(config, context?.runtime);
   const callbacks = createCliRunnerCallbacks(runner);
   const readline = createInterface({ input, output, terminal: false });
   activeInterface = readline;
@@ -94,10 +95,26 @@ export const startCliConnector = async (config: AppConfig): Promise<void> => {
     }
 
     messageId += 1;
+    const message = {
+      connector: 'dev-cli',
+      userId: 'local',
+      conversationId: conversationKey,
+      messageId: String(messageId),
+      text,
+      timestamp: new Date().toISOString(),
+      raw: line,
+    };
+    const eventResult = await context?.runtime.events.dispatch('connector_message', message);
+    if (eventResult?.blocked === true) {
+      writeLine(eventResult.reason ?? 'Message blocked.');
+      printPrompt();
+      continue;
+    }
+
     await runner.submitTask({
       conversationKey,
       messageId,
-      text,
+      text: eventResult?.event.text ?? text,
       callbacks,
     });
     printPrompt();

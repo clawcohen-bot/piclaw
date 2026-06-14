@@ -30,6 +30,11 @@ export type VoiceConfig = {
   timeoutMs: number;
 };
 
+export type ModelConfig = {
+  default?: string;
+  providers: Record<string, unknown>;
+};
+
 export type AppConfig = {
   telegram: TelegramConfig;
   slack: SlackConfig;
@@ -37,6 +42,9 @@ export type AppConfig = {
   rootPath: string;
   server: ServerConfig;
   voice: VoiceConfig;
+  extensions: string[];
+  packages: string[];
+  models: ModelConfig;
 };
 
 export const getConfigPath = (): string => join(process.cwd(), 'config', 'piclaw.json');
@@ -55,7 +63,7 @@ export const parseConfig = (value: unknown): AppConfig => {
     throw new Error('Config must be an object');
   }
 
-  const { telegram, slack, devCli, rootPath, server, voice } = value;
+  const { telegram, slack, devCli, rootPath, server, voice, extensions, packages: packagePaths, models } = value;
 
   if (!isRecord(telegram) || !isNumberArray(telegram.allowedUserIds)) {
     throw new Error('Config telegram.allowedUserIds must be a number array');
@@ -154,6 +162,31 @@ export const parseConfig = (value: unknown): AppConfig => {
 
   const resolvedVoiceModel = resolveSystemPath(process.cwd(), voiceConfig.whisperModel);
 
+  const extensionPaths = extensions === undefined ? [] : extensions;
+  if (!isStringArray(extensionPaths)) {
+    throw new Error('Config extensions must be a string array');
+  }
+
+  const packagePathList = packagePaths === undefined ? [] : packagePaths;
+  if (!isStringArray(packagePathList)) {
+    throw new Error('Config packages must be a string array');
+  }
+
+  const modelConfig = models === undefined ? {} : models;
+  if (!isRecord(modelConfig)) {
+    throw new Error('Config models must be an object');
+  }
+
+  const defaultModel = modelConfig.default;
+  if (defaultModel !== undefined && typeof defaultModel !== 'string') {
+    throw new Error('Config models.default must be a string');
+  }
+
+  const providerConfig = modelConfig.providers === undefined ? {} : modelConfig.providers;
+  if (!isRecord(providerConfig)) {
+    throw new Error('Config models.providers must be an object');
+  }
+
   return {
     telegram: {
       enabled: telegramEnabled,
@@ -174,6 +207,12 @@ export const parseConfig = (value: unknown): AppConfig => {
     voice: {
       ...voiceConfig,
       whisperModel: resolvedVoiceModel,
+    },
+    extensions: extensionPaths.map((path) => resolveSystemPath(process.cwd(), path)),
+    packages: packagePathList.map((path) => resolveSystemPath(process.cwd(), path)),
+    models: {
+      default: defaultModel,
+      providers: providerConfig,
     },
   };
 };

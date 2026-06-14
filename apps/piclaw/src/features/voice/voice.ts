@@ -20,11 +20,17 @@ const convertToWav = async (inputPath: string, outputPath: string, voiceConfig: 
 };
 
 const readTranscript = async (transcriptPath: string, stdout: string): Promise<string> => {
-  try {
-    return (await readFile(transcriptPath, 'utf8')).trim();
-  } catch {
-    return stdout.trim();
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    try {
+      return (await readFile(transcriptPath, 'utf8')).trim();
+    } catch {
+      if (attempt < 2) {
+        await new Promise((resolve) => setTimeout(resolve, 0));
+      }
+    }
   }
+
+  return stdout.trim();
 };
 
 export const transcribeVoiceBuffer = async (buffer: Buffer, voiceConfig: VoiceConfig): Promise<string> => {

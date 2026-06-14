@@ -20,6 +20,9 @@ const config = (): AppConfig => ({
   rootPath: tempDir,
   server: { services: ['demo.service'], logFiles: [resolve(tempDir, 'app.log')] },
   voice: { whisperCommand: 'whisper', whisperModel: 'model', ffmpegCommand: 'ffmpeg', extraArgs: [], timeoutMs: 1000 },
+  extensions: [],
+  packages: [],
+  models: { providers: {} },
 });
 
 const mockExecFile = (stdout: string, stderr = '') => {

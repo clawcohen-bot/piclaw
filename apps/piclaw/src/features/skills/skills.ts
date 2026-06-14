@@ -1,5 +1,6 @@
 import { loadSkills } from '@earendil-works/pi-coding-agent';
 import { existsSync } from 'node:fs';
+import { homedir } from 'node:os';
 import { resolve } from 'node:path';
 
 import { escapeTelegramHtml } from '../../messages/format';
@@ -10,13 +11,19 @@ export type SkillSummary = {
   description: string;
 };
 
-export const getAvailableSkillSummaries = (rootPath: string): SkillSummary[] => {
-  const skillPaths: string[] = [];
-  const agentsSkillsDir = resolve(rootPath, '.agents', 'skills');
+export const getSkillSearchPaths = (rootPath: string, extraPaths: string[] = []): string[] => {
+  const candidates = [
+    resolve(rootPath, '.piclaw', 'skills'),
+    resolve(rootPath, '.agents', 'skills'),
+    resolve(homedir(), '.piclaw', 'skills'),
+    ...extraPaths,
+  ];
 
-  if (existsSync(agentsSkillsDir)) {
-    skillPaths.push(agentsSkillsDir);
-  }
+  return [...new Set(candidates)].filter((path) => existsSync(path));
+};
+
+export const getAvailableSkillSummaries = (rootPath: string, extraPaths: string[] = []): SkillSummary[] => {
+  const skillPaths = getSkillSearchPaths(rootPath, extraPaths);
 
   const result = loadSkills({
     cwd: rootPath,
@@ -33,8 +40,8 @@ export const getAvailableSkillSummaries = (rootPath: string): SkillSummary[] => 
     .sort((left, right) => left.name.localeCompare(right.name));
 };
 
-export const formatSkillsList = (rootPath: string): string => {
-  const skills = getAvailableSkillSummaries(rootPath);
+export const formatSkillsList = (rootPath: string, extraPaths: string[] = []): string => {
+  const skills = getAvailableSkillSummaries(rootPath, extraPaths);
 
   if (skills.length === 0) {
     return 'No skills found.';
@@ -43,8 +50,8 @@ export const formatSkillsList = (rootPath: string): string => {
   return ['Available skills:', '', skills.map((skill) => `${skill.name}\n  ${skill.description}`).join('\n\n')].join('\n');
 };
 
-export const formatSkillsTelegramHtml = (rootPath: string): string => {
-  const skills = getAvailableSkillSummaries(rootPath);
+export const formatSkillsTelegramHtml = (rootPath: string, extraPaths: string[] = []): string => {
+  const skills = getAvailableSkillSummaries(rootPath, extraPaths);
 
   if (skills.length === 0) {
     return 'No skills found.';
@@ -62,8 +69,8 @@ export const formatSkillsTelegramHtml = (rootPath: string): string => {
   ].join('\n');
 };
 
-export const formatSkillsStatusList = (rootPath: string): string => {
-  const skills = getAvailableSkillSummaries(rootPath);
+export const formatSkillsStatusList = (rootPath: string, extraPaths: string[] = []): string => {
+  const skills = getAvailableSkillSummaries(rootPath, extraPaths);
 
   if (skills.length === 0) {
     return 'Skills:\n  none';

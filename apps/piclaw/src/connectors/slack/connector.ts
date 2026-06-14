@@ -3,7 +3,7 @@ import { createAgentRunner, type AgentRunnerCallbacks } from '../../agent/agent-
 import type { AppConfig } from '../../core/config';
 import { getErrorMessage } from '../../core/error';
 import { truncateText } from '../../messages/text';
-import type { Connector } from '../types';
+import type { Connector, ConnectorContext } from '../types';
 
 const replyLimit = 3500;
 
@@ -110,17 +110,18 @@ const isGenericMessage = (event: unknown): event is SlackRunnableMessageEvent =>
 };
 
 export const createSlackConnector = (config: AppConfig): Connector => ({
-  start: () => startSlackConnector(config),
+  name: 'slack',
+  start: (context?: ConnectorContext) => startSlackConnector(config, context),
   stop: () => {
     void activeApp?.stop();
   },
 });
 
-export const startSlackConnector = async (config: AppConfig): Promise<void> => {
+export const startSlackConnector = async (config: AppConfig, context?: ConnectorContext): Promise<void> => {
   const { token, appToken, signingSecret } = getSlackTokens();
   const app = new App({ token, appToken, signingSecret, socketMode: true });
   activeApp = app;
-  const runner = createAgentRunner(config);
+  const runner = createAgentRunner(config, context?.runtime);
 
   app.event('app_mention', async ({ event }) => {
     const userId = event.user;
@@ -133,7 +134,21 @@ export const startSlackConnector = async (config: AppConfig): Promise<void> => {
       return;
     }
 
-    await submitSlackTask(app, runner, event.channel, event.ts, userId, text, event.thread_ts ?? event.ts);
+    const message = await context?.runtime.events.dispatch('connector_message', {
+      connector: 'slack',
+      userId,
+      conversationId: event.channel,
+      threadId: event.thread_ts ?? event.ts,
+      messageId: event.ts,
+      text,
+      timestamp: new Date().toISOString(),
+      raw: event,
+    });
+    if (message?.blocked === true) {
+      return;
+    }
+
+    await submitSlackTask(app, runner, event.channel, event.ts, userId, message?.event.text ?? text, event.thread_ts ?? event.ts);
   });
 
   app.event('message', async ({ event }) => {
@@ -159,7 +174,22 @@ export const startSlackConnector = async (config: AppConfig): Promise<void> => {
       return;
     }
 
-    await submitSlackTask(app, runner, messageEvent.channel, messageEvent.ts, userId, messageEvent.text.trim(), messageEvent.thread_ts);
+    const text = messageEvent.text.trim();
+    const message = await context?.runtime.events.dispatch('connector_message', {
+      connector: 'slack',
+      userId,
+      conversationId: messageEvent.channel,
+      threadId: messageEvent.thread_ts,
+      messageId: messageEvent.ts,
+      text,
+      timestamp: new Date().toISOString(),
+      raw: messageEvent,
+    });
+    if (message?.blocked === true) {
+      return;
+    }
+
+    await submitSlackTask(app, runner, messageEvent.channel, messageEvent.ts, userId, message?.event.text ?? text, messageEvent.thread_ts);
   });
 
   await app.start();

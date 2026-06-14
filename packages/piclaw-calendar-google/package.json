@@ -1,0 +1,10 @@
+{
+  "name": "piclaw-calendar-google",
+  "private": true,
+  "keywords": ["piclaw-package"],
+  "piclaw": {
+    "extensions": ["extensions"],
+    "skills": [],
+    "prompts": []
+  }
+}

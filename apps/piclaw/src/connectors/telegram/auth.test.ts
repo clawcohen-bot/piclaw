@@ -10,6 +10,9 @@ const config: AppConfig = {
   rootPath: '/repo',
   server: { services: [], logFiles: [] },
   voice: { whisperCommand: 'whisper', whisperModel: 'model', ffmpegCommand: 'ffmpeg', extraArgs: [], timeoutMs: 1 },
+  extensions: [],
+  packages: [],
+  models: { providers: {} },
 };
 
 describe('auth helpers', () => {

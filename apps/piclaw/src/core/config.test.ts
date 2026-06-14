@@ -39,6 +39,9 @@ describe('config', () => {
     expect(config.server.logFiles).toEqual([resolve(cwd, 'logs/app.log')]);
     expect(config.voice).toMatchObject({ whisperCommand: 'whisper-cli', ffmpegCommand: 'ffmpeg', extraArgs: ['--no-prints'], timeoutMs: 120_000 });
     expect(config.voice.whisperModel).toBe(resolve(cwd, 'data/voice/ggml-base.en.bin'));
+    expect(config.extensions).toEqual([]);
+    expect(config.packages).toEqual([]);
+    expect(config.models).toEqual({ providers: {} });
   });
 
   it('parses custom voice and connector settings', () => {
@@ -48,11 +51,17 @@ describe('config', () => {
       slack: { enabled: true, allowedUserIds: ['U1'] },
       devCli: { enabled: true },
       voice: { whisperCommand: 'whisper', whisperModel: 'model.bin', ffmpegCommand: 'avconv', extraArgs: ['--fast'], timeoutMs: 5 },
+      extensions: ['.piclaw/extensions'],
+      packages: ['packages/wiki'],
+      models: { default: 'openai/gpt-4.1-mini', providers: { local: { baseUrl: 'http://localhost' } } },
     });
     expect(config.telegram.enabled).toBe(false);
     expect(config.slack).toEqual({ enabled: true, allowedUserIds: ['U1'] });
     expect(config.devCli).toEqual({ enabled: true });
     expect(config.voice).toEqual({ whisperCommand: 'whisper', whisperModel: resolve(process.cwd(), 'model.bin'), ffmpegCommand: 'avconv', extraArgs: ['--fast'], timeoutMs: 5 });
+    expect(config.extensions).toEqual([resolve(process.cwd(), '.piclaw/extensions')]);
+    expect(config.packages).toEqual([resolve(process.cwd(), 'packages/wiki')]);
+    expect(config.models).toEqual({ default: 'openai/gpt-4.1-mini', providers: { local: { baseUrl: 'http://localhost' } } });
   });
 
   it('loads json config from disk', async () => {
@@ -78,5 +87,10 @@ describe('config', () => {
     expect(() => parseConfig({ ...baseConfig, voice: { ffmpegCommand: 1 } })).toThrow('ffmpegCommand');
     expect(() => parseConfig({ ...baseConfig, voice: { extraArgs: [1] } })).toThrow('extraArgs');
     expect(() => parseConfig({ ...baseConfig, voice: { timeoutMs: 'bad' } })).toThrow('timeoutMs');
+    expect(() => parseConfig({ ...baseConfig, extensions: [1] })).toThrow('extensions');
+    expect(() => parseConfig({ ...baseConfig, packages: [1] })).toThrow('packages');
+    expect(() => parseConfig({ ...baseConfig, models: 1 })).toThrow('models must be an object');
+    expect(() => parseConfig({ ...baseConfig, models: { default: 1 } })).toThrow('models.default');
+    expect(() => parseConfig({ ...baseConfig, models: { providers: [] } })).toThrow('models.providers');
   });
 });

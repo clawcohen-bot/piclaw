@@ -16,6 +16,7 @@ import { compactTelegramContext, runPiTask } from './pi-task';
 import { createTaskState, isBusy, popQueuedTask, queueTask, type TaskState } from './task-state';
 import { truncateText } from '../messages/text';
 import type { ConversationKey } from '../core/storage';
+import type { PiclawRuntime } from '../core/runtime';
 import {
   buildPiTaskContext,
   calculateContextUsage,
@@ -60,7 +61,7 @@ export type AgentRunner = {
   }>;
 };
 
-export const createAgentRunner = (config: AppConfig): AgentRunner => {
+export const createAgentRunner = (config: AppConfig, runtime?: PiclawRuntime): AgentRunner => {
   const taskState = createTaskState();
   const pendingBusyTasks = new Map<string, string>();
 
@@ -154,9 +155,33 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
       const sessionSummary = await readSessionSummary();
       const mode = await readAgentMode(conversationKey);
       const model = await readSelectedModel(conversationKey);
+      const start = await runtime?.events.dispatch('before_agent_start', {
+        conversationId: String(conversationKey),
+        prompt: taskText,
+      });
+      if (start?.blocked === true) {
+        await callbacks.sendReply(start.reason ?? 'Task blocked.');
+        return;
+      }
+
+      const contextEvent = await runtime?.events.dispatch('context_build', {
+        conversationId: String(conversationKey),
+        prompt: start?.event.prompt ?? taskText,
+        context: [],
+      });
+      if (contextEvent?.blocked === true) {
+        await callbacks.sendReply(contextEvent.reason ?? 'Context blocked.');
+        return;
+      }
+
+      const finalPrompt = [
+        ...(contextEvent?.event.context ?? []),
+        contextEvent?.event.prompt ?? start?.event.prompt ?? taskText,
+      ].filter(Boolean).join('\n\n');
+
       const result = await runPiTask({
         rootPath: config.rootPath,
-        prompt: taskText,
+        prompt: finalPrompt,
         model,
         shortMemory,
         memory: markdownMemory,
@@ -169,10 +194,20 @@ export const createAgentRunner = (config: AppConfig): AgentRunner => {
         onToolEnd: finishTool,
       });
 
-      await callbacks.sendFormattedReply(truncateText(result, 3500));
+      const response = await runtime?.events.dispatch('agent_response', {
+        conversationId: String(conversationKey),
+        response: result,
+      });
+      if (response?.blocked === true) {
+        await callbacks.sendReply(response.reason ?? 'Response blocked.');
+        return;
+      }
+
+      const finalResponse = response?.event.response ?? result;
+      await callbacks.sendFormattedReply(truncateText(finalResponse, 3500));
       await addShortMemoryMessage(conversationKey, {
         role: 'bot',
-        text: result,
+        text: finalResponse,
         timestamp: new Date().toISOString(),
         rootId: rootMemoryId,
         messageId: sourceMessageId,
