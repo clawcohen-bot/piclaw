@@ -1,10 +1,12 @@
 import type { AppConfig } from './config';
 import { createEventBus, type PiclawEventBus } from './events';
 import {
+  createCallbackActionRegistry,
   createCommandRegistry,
   createCronjobRegistry,
   createProviderRegistry,
   createToolRegistry,
+  type CallbackActionRegistry,
   type CommandRegistry,
   type CronjobRegistry,
   type ProviderRegistry,
@@ -16,6 +18,7 @@ export type PiclawRuntime = {
   config: AppConfig;
   events: PiclawEventBus;
   commands: CommandRegistry;
+  callbacks: CallbackActionRegistry;
   tools: ToolRegistry;
   cronjobs: CronjobRegistry;
   providers: ProviderRegistry;
@@ -29,6 +32,7 @@ export const createPiclawRuntime = (
 ): PiclawRuntime => {
   const events = createEventBus({ logger });
   const commands = createCommandRegistry();
+  const callbacks = createCallbackActionRegistry();
   const tools = createToolRegistry(events);
   const cronjobs = createCronjobRegistry(events);
   const providers = createProviderRegistry();
@@ -37,6 +41,7 @@ export const createPiclawRuntime = (
     config,
     events,
     commands,
+    callbacks,
     tools,
     cronjobs,
     providers,
@@ -48,6 +53,7 @@ export const createPiclawRuntime = (
     logger,
     on: events.on,
     registerCommand: commands.register,
+    registerCallbackAction: callbacks.register,
     registerTool: tools.register,
     registerCronjob: cronjobs.register,
     registerProvider: providers.register,

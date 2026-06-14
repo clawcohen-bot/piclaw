@@ -20,25 +20,10 @@ import { isBusy } from '../../agent/task-state';
 import { clearWarnedUsageLevels, formatContextUsage } from '../../agent/usage';
 import { type AppConfig, getConfigPath } from '../../core/config';
 import type { PiclawRuntime } from '../../core/runtime';
-import type { CommandHandlerInput } from '../../core/registries';
+import type { CallbackHandlerInput, CommandHandlerInput } from '../../core/registries';
 import { getErrorMessage } from '../../core/error';
-import {
-  type CalendarEventDraft,
-  createGoogleCalendarAuthUrl,
-  createGoogleCalendarEvent,
-  disconnectGoogleCalendar,
-  formatGoogleCalendarEvents,
-  formatGoogleCalendarSetupHelp,
-  formatGoogleCalendarStatus,
-  getGoogleCalendarCredentials,
-  listGoogleCalendarEvents,
-  parseCalendarAddDraft,
-  saveGoogleCalendarCode,
-} from '../calendar/google-calendar';
-import { formatPackagesList } from '../packages/packages';
-import { formatSkillsStatusList, formatSkillsTelegramHtml } from '../skills/skills';
-import { downloadTelegramFile, transcribeVoiceBuffer } from '../voice/voice';
-import { addWikiNote, formatWikiOpen, formatWikiSearchResults, formatWikiStatus, searchWiki } from '../wiki/wiki';
+import { formatPackagesList } from '../../features/packages/packages';
+import { formatSkillsStatusList, formatSkillsTelegramHtml } from '../../features/skills/skills';
 import {
   clearMarkdownMemory,
   clearSessionSummary,
@@ -51,8 +36,8 @@ import { helpText } from '../../messages/commands';
 import { codeBlock, telegramHtmlFromMarkdown } from '../../messages/format';
 import { getCommandPayload, truncateText } from '../../messages/text';
 import { formatServices, getServerStatus, readAllowedLogs, restartAllowedService } from '../../server/server';
-import { getChatId } from '../../connectors/telegram/telegram-context';
-import { getMessageId, getMessageText } from '../../connectors/telegram/telegram-text';
+import { getChatId } from './telegram-context';
+import { getMessageId, getMessageText } from './telegram-text';
 import { Context, Telegraf } from 'telegraf';
 
 const rootMemoryId = 'server-root';
@@ -110,6 +95,15 @@ const getTelegramCommandName = (text: string): string | undefined => {
   return match?.[1]?.toLowerCase();
 };
 
+const getCallbackQueryData = (ctx: Context): string | undefined => {
+  const callbackQuery = ctx.callbackQuery;
+  if (callbackQuery === undefined || !('data' in callbackQuery)) {
+    return undefined;
+  }
+
+  return callbackQuery.data;
+};
+
 const startTypingIndicator = (ctx: TypingContext): (() => void) => {
   let stopped = false;
 
@@ -136,13 +130,14 @@ const startTypingIndicator = (ctx: TypingContext): (() => void) => {
   };
 };
 
-export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: AppConfig, runtime: PiclawRuntime): void => {
+export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: AppConfig, runtime: PiclawRuntime): void => {
   const agentRunner = createAgentRunner(config);
   const pendingAuthByChat = new Map<number, PendingAuthInput>();
-  const pendingCalendarAddsByChat = new Map<number, CalendarEventDraft>();
 
   type TelegramCommandContext = Context & { text: string };
   type TelegramCommandHandler = (ctx: TelegramCommandContext, input: CommandHandlerInput) => Promise<void> | void;
+  type TelegramCallbackContext = Context & { data: string };
+  type TelegramCallbackHandler = (ctx: TelegramCallbackContext, input: CallbackHandlerInput) => Promise<void> | void;
 
   const registerTelegramCommand = (name: string, description: string, handler: TelegramCommandHandler): void => {
     runtime.commands.register({
@@ -150,6 +145,21 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
       description,
       handler: async (input) => {
         const ctx = input.context as TelegramCommandContext | undefined;
+        if (ctx === undefined) {
+          return;
+        }
+        await handler(ctx, input);
+      },
+    });
+  };
+
+  const registerTelegramCallback = (name: string, description: string, pattern: RegExp, handler: TelegramCallbackHandler): void => {
+    runtime.callbacks.register({
+      name,
+      description,
+      pattern,
+      handler: async (input) => {
+        const ctx = input.context as TelegramCallbackContext | undefined;
         if (ctx === undefined) {
           return;
         }
@@ -353,15 +363,14 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     runLoginInBackground(ctx, chatId, payload);
   });
 
-  bot.action(/^authlogin:(oauth|api_key):.+$/, async (ctx) => {
+  registerTelegramCallback('authlogin', 'Start auth login from an inline button.', /^authlogin:(oauth|api_key):.+$/, async (ctx) => {
     const chatId = getChatId(ctx);
-    const callbackQuery = ctx.callbackQuery;
-    if (chatId === undefined || !('data' in callbackQuery)) {
+    if (chatId === undefined) {
       await ctx.answerCbQuery('Invalid login action');
       return;
     }
 
-    const [, authType, providerId] = callbackQuery.data.split(':');
+    const [, authType, providerId] = ctx.data.split(':');
     if (!isAuthProviderAuthType(authType) || providerId === undefined) {
       await ctx.answerCbQuery('Invalid login action');
       return;
@@ -396,14 +405,8 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     });
   });
 
-  bot.action(/^authlogout:.+$/, async (ctx) => {
-    const callbackQuery = ctx.callbackQuery;
-    if (!('data' in callbackQuery)) {
-      await ctx.answerCbQuery('Invalid logout action');
-      return;
-    }
-
-    const providerId = callbackQuery.data.slice('authlogout:'.length);
+  registerTelegramCallback('authlogout', 'Logout from an auth provider from an inline button.', /^authlogout:.+$/, async (ctx) => {
+    const providerId = ctx.data.slice('authlogout:'.length);
     logoutAuthProvider(providerId);
     await ctx.answerCbQuery('Logged out');
     await ctx.reply(
@@ -501,20 +504,14 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     });
   });
 
-  bot.action(/^model:\d+$/, async (ctx) => {
+  registerTelegramCallback('model', 'Select model from an inline button.', /^model:\d+$/, async (ctx) => {
     const chatId = getChatId(ctx);
     if (chatId === undefined) {
       await ctx.answerCbQuery('Cannot choose model without chat');
       return;
     }
 
-    const callbackQuery = ctx.callbackQuery;
-    if (!('data' in callbackQuery)) {
-      await ctx.answerCbQuery('Invalid model action');
-      return;
-    }
-
-    const index = Number(callbackQuery.data.split(':')[1]);
+    const index = Number(ctx.data.split(':')[1]);
     const model = getAvailableModels()[index];
     if (model === undefined) {
       await ctx.answerCbQuery('Model not found');
@@ -556,191 +553,6 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     const [memory, summary] = await Promise.all([readMarkdownMemory(), readSessionSummary()]);
     const text = ['Long memory:', memory || '(empty)', '', 'Session compact memory:', summary || '(empty)'].join('\n');
     await replyTelegramHtml(ctx, telegramHtmlFromMarkdown(truncateText(text, 3500)));
-  });
-
-  registerTelegramCommand('wiki', '', async (ctx) => {
-    await ctx.reply(await formatWikiStatus());
-  });
-
-  registerTelegramCommand('wiki-add', '', async (ctx) => {
-    const payload = getCommandPayload(ctx.text);
-    if (payload.length === 0) {
-      await ctx.reply('Use /wiki-add <text>');
-      return;
-    }
-
-    try {
-      const result = await addWikiNote(payload, 'telegram');
-      await ctx.reply(`Added to Obsidian wiki.\nInbox: ${result.inboxPath}\nRaw: ${result.rawPath}`);
-    } catch (error) {
-      await ctx.reply(`Wiki add failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('wiki-search', '', async (ctx) => {
-    const query = getCommandPayload(ctx.text);
-    const results = await searchWiki(query);
-    await ctx.reply(truncateText(formatWikiSearchResults(query, results), 3500));
-  });
-
-  registerTelegramCommand('wiki-open', '', async (ctx) => {
-    await ctx.reply(await formatWikiOpen(getCommandPayload(ctx.text)));
-  });
-
-  registerTelegramCommand('calendar', '', async (ctx) => {
-    await ctx.reply(await formatGoogleCalendarStatus());
-  });
-
-  registerTelegramCommand('calendar-connect', '', async (ctx) => {
-    const credentials = getGoogleCalendarCredentials();
-    if (credentials === undefined) {
-      await ctx.reply(formatGoogleCalendarSetupHelp());
-      return;
-    }
-
-    await ctx.reply(
-      [
-        'Open this Google link and approve Calendar access:',
-        createGoogleCalendarAuthUrl(credentials),
-        '',
-        'After approval, copy the final redirect URL or code and send:',
-        '/calendar-code <redirect-url-or-code>',
-      ].join('\n'),
-    );
-  });
-
-  registerTelegramCommand('calendar-code', '', async (ctx) => {
-    const credentials = getGoogleCalendarCredentials();
-    if (credentials === undefined) {
-      await ctx.reply(formatGoogleCalendarSetupHelp());
-      return;
-    }
-
-    const code = getCommandPayload(ctx.text);
-    if (code.length === 0) {
-      await ctx.reply('Use /calendar-code <redirect-url-or-code>');
-      return;
-    }
-
-    try {
-      await saveGoogleCalendarCode(credentials, code);
-      await ctx.reply('Google Calendar connected. Use /calendar-today or /calendar-week.');
-    } catch (error) {
-      await ctx.reply(`Calendar connect failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('calendar-disconnect', '', async (ctx) => {
-    await disconnectGoogleCalendar();
-    await ctx.reply('Google Calendar disconnected.');
-  });
-
-  registerTelegramCommand('calendar-today', '', async (ctx) => {
-    const credentials = getGoogleCalendarCredentials();
-    if (credentials === undefined) {
-      await ctx.reply(formatGoogleCalendarSetupHelp());
-      return;
-    }
-
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 1);
-
-    try {
-      const events = await listGoogleCalendarEvents(credentials, start, end);
-      await ctx.reply(truncateText(formatGoogleCalendarEvents('today', events), 3500));
-    } catch (error) {
-      await ctx.reply(`Calendar read failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('calendar-week', '', async (ctx) => {
-    const credentials = getGoogleCalendarCredentials();
-    if (credentials === undefined) {
-      await ctx.reply(formatGoogleCalendarSetupHelp());
-      return;
-    }
-
-    const start = new Date();
-    start.setHours(0, 0, 0, 0);
-    const end = new Date(start);
-    end.setDate(end.getDate() + 7);
-
-    try {
-      const events = await listGoogleCalendarEvents(credentials, start, end);
-      await ctx.reply(truncateText(formatGoogleCalendarEvents('this week', events), 3500));
-    } catch (error) {
-      await ctx.reply(`Calendar read failed: ${getErrorMessage(error)}`);
-    }
-  });
-
-  registerTelegramCommand('calendar-add', '', async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.reply('Cannot add calendar event without chat.');
-      return;
-    }
-
-    try {
-      const draft = parseCalendarAddDraft(getCommandPayload(ctx.text));
-      pendingCalendarAddsByChat.set(chatId, draft);
-      await ctx.reply(`Create calendar event?\n${draft.summary}\n${draft.start} - ${draft.end}`, {
-        reply_markup: {
-          inline_keyboard: [[
-            { text: 'Create', callback_data: 'calendaradd:confirm' },
-            { text: 'Cancel', callback_data: 'calendaradd:cancel' },
-          ]],
-        },
-      });
-    } catch (error) {
-      await ctx.reply(getErrorMessage(error));
-    }
-  });
-
-  bot.action(/^calendaradd:(confirm|cancel)$/, async (ctx) => {
-    const chatId = getChatId(ctx);
-    if (chatId === undefined) {
-      await ctx.answerCbQuery('Cannot use calendar without chat');
-      return;
-    }
-
-    const callbackQuery = ctx.callbackQuery;
-    if (!('data' in callbackQuery)) {
-      await ctx.answerCbQuery('Invalid calendar action');
-      return;
-    }
-
-    const action = callbackQuery.data.split(':')[1];
-    const draft = pendingCalendarAddsByChat.get(chatId);
-    if (draft === undefined) {
-      await ctx.answerCbQuery('No pending event');
-      return;
-    }
-
-    if (action === 'cancel') {
-      pendingCalendarAddsByChat.delete(chatId);
-      await ctx.answerCbQuery('Cancelled');
-      await ctx.reply('Calendar event cancelled.');
-      return;
-    }
-
-    const credentials = getGoogleCalendarCredentials();
-    if (credentials === undefined) {
-      await ctx.answerCbQuery('Calendar not configured');
-      await ctx.reply(formatGoogleCalendarSetupHelp());
-      return;
-    }
-
-    try {
-      const event = await createGoogleCalendarEvent(credentials, draft);
-      pendingCalendarAddsByChat.delete(chatId);
-      await ctx.answerCbQuery('Created');
-      await ctx.reply(`Created calendar event:\n${event.summary}\n${event.start}`);
-    } catch (error) {
-      await ctx.answerCbQuery('Failed');
-      await ctx.reply(`Calendar create failed: ${getErrorMessage(error)}`);
-    }
   });
 
   registerTelegramCommand('new', '', async (ctx) => {
@@ -814,14 +626,8 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     await ctx.reply('Cancelled active task.');
   });
 
-  bot.action(/^busy:(queue|cancel|ignore):.+$/, async (ctx) => {
-    const callbackQuery = ctx.callbackQuery;
-    if (!('data' in callbackQuery)) {
-      await ctx.answerCbQuery('Invalid busy action');
-      return;
-    }
-
-    const parts = callbackQuery.data.split(':');
+  registerTelegramCallback('busy', 'Handle busy-task inline button choices.', /^busy:(queue|cancel|ignore):.+$/, async (ctx) => {
+    const parts = ctx.data.split(':');
     const action = parts[1];
     const actionId = parts[2];
     if (actionId === undefined) {
@@ -930,9 +736,21 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
     const status = await ctx.reply('Transcribing voice...');
 
     try {
-      const fileLink = await ctx.telegram.getFileLink(ctx.message.voice.file_id);
-      const voiceBuffer = await downloadTelegramFile(fileLink);
-      const transcript = await transcribeVoiceBuffer(voiceBuffer, config.voice);
+      const tool = runtime.tools.get('voice.transcribe-telegram-file');
+      if (tool === undefined) {
+        await ctx.reply('Voice package is not enabled. Enable packages/piclaw-voice to use voice messages.');
+        return;
+      }
+
+      const result = await runtime.tools.call('voice.transcribe-telegram-file', {
+        fileId: ctx.message.voice.file_id,
+        getFileLink: (fileId: string) => ctx.telegram.getFileLink(fileId),
+      });
+      const transcript = typeof result === 'string' ? result : '';
+      if (transcript.length === 0) {
+        await ctx.reply('Voice transcription returned no text.');
+        return;
+      }
       await ctx.reply(truncateText(`Transcript:\n${transcript}`, 3500));
       await submitTask(ctx, chatId, messageId, transcript);
     } catch (error) {
@@ -946,6 +764,32 @@ export const registerTelegramFeatureHandlers = (bot: Telegraf<Context>, config: 
           // Ignore Telegram delete failures.
         }
       }
+    }
+  });
+
+  bot.on('callback_query', async (ctx) => {
+    const data = getCallbackQueryData(ctx);
+    if (data === undefined) {
+      await ctx.answerCbQuery('Invalid action');
+      return;
+    }
+
+    const chatId = getChatId(ctx);
+    const result = await runtime.callbacks.handle({
+      data,
+      connector: 'telegram',
+      conversationId: chatId === undefined ? undefined : String(chatId),
+      userId: ctx.from?.id === undefined ? undefined : String(ctx.from.id),
+      context: Object.assign(ctx, { data }),
+    });
+
+    if (!result.handled) {
+      await ctx.answerCbQuery('Unknown action');
+      return;
+    }
+
+    if (typeof result.result === 'string' && result.result.length > 0) {
+      await ctx.reply(result.result);
     }
   });
 

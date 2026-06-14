@@ -139,7 +139,13 @@ Optional config fields:
     "ffmpegCommand": "ffmpeg",
     "extraArgs": ["--no-prints"],
     "timeoutMs": 120000
-  }
+  },
+  "extensions": [],
+  "packages": [
+    "packages/piclaw-wiki",
+    "packages/piclaw-calendar-google",
+    "packages/piclaw-voice"
+  ]
 }
 ```
 
@@ -150,8 +156,12 @@ Defaults:
 - `slack.allowedUserIds`: []
 - `devCli.enabled`: false
 - voice settings as shown above
+- `extensions`: []
+- `packages`: [] unless listed in local config
 
 `rootPath` may be relative or absolute. It only sets the bot's default working directory.
+
+Packages can be enabled or disabled by adding/removing paths in `packages`. See `docs/packages.md`.
 
 At least one connector must be enabled.
 
@@ -264,3 +274,9 @@ Slack accepts tasks from allowed users. It does not implement the Telegram comma
 - `/server-logs <name>`
 - `/server-restart <service>`
 - voice messages
+
+## Package and connector docs
+
+- `docs/packages.md`: create, enable, and disable packages
+- `docs/extensions.md`: extension API
+- `docs/connectors.md`: thin connector boundary

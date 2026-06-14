@@ -1,6 +1,6 @@
 import type { AppConfig } from './config';
 import type { PiclawEventHandler, PiclawEventName, PiclawEvents } from './events';
-import type { PiclawCommand, PiclawCronjob, PiclawProvider, PiclawTool } from './registries';
+import type { PiclawCallbackAction, PiclawCommand, PiclawCronjob, PiclawProvider, PiclawTool } from './registries';
 
 export type PiclawExtensionAPI = {
   config: AppConfig;
@@ -8,6 +8,7 @@ export type PiclawExtensionAPI = {
   on<TName extends PiclawEventName>(name: TName, handler: PiclawEventHandler<PiclawEvents[TName]>): () => void;
   registerTool(tool: PiclawTool): () => void;
   registerCommand(command: PiclawCommand): () => void;
+  registerCallbackAction(action: PiclawCallbackAction): () => void;
   registerCronjob(cronjob: PiclawCronjob): () => void;
   registerProvider(name: string, provider: PiclawProvider): () => void;
   unregisterProvider(name: string): boolean;

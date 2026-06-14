@@ -15,7 +15,7 @@ export default defineConfig({
         'apps/piclaw/src/app/main.ts',
         'apps/piclaw/src/agent/agent-runner.ts',
         'apps/piclaw/src/connectors/telegram/connector.ts',
-        'apps/piclaw/src/features/telegram/telegram-feature-handlers.ts',
+        'apps/piclaw/src/connectors/telegram/runtime-handlers.ts',
         'apps/piclaw/src/connectors/slack/connector.ts',
         'apps/piclaw/src/connectors/cli/connector.ts',
         'apps/piclaw/src/agent/pi-task.ts',

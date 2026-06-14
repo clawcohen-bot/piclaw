@@ -1,7 +1,7 @@
 import type { AppConfig } from '../../core/config';
 import type { Connector, ConnectorContext } from '../types';
 import { createAuthMiddleware } from './auth';
-import { registerTelegramFeatureHandlers } from '../../features/telegram/telegram-feature-handlers';
+import { registerTelegramRuntimeHandlers } from './runtime-handlers';
 import { Context, Telegraf } from 'telegraf';
 
 let activeBot: Telegraf<Context> | undefined;
@@ -28,7 +28,7 @@ export const startTelegramConnector = async (config: AppConfig, context?: Connec
   }
 
   bot.use(createAuthMiddleware(config));
-  registerTelegramFeatureHandlers(bot, config, context.runtime);
+  registerTelegramRuntimeHandlers(bot, config, context.runtime);
 
   void bot.launch();
 

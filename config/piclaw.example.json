@@ -16,5 +16,10 @@
     "ffmpegCommand": "ffmpeg",
     "extraArgs": ["--no-prints"],
     "timeoutMs": 120000
-  }
+  },
+  "packages": [
+    "packages/piclaw-wiki",
+    "packages/piclaw-calendar-google",
+    "packages/piclaw-voice"
+  ]
 }

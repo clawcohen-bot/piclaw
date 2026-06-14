@@ -336,3 +336,11 @@ More detailed app documentation is here:
 ```txt
 apps/piclaw/README.md
 ```
+
+Runtime/package docs:
+
+```txt
+docs/packages.md
+docs/extensions.md
+docs/connectors.md
+```

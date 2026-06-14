@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { createEventBus } from './events';
-import { createCommandRegistry, createCronjobRegistry, createProviderRegistry, createToolRegistry } from './registries';
+import { createCallbackActionRegistry, createCommandRegistry, createCronjobRegistry, createProviderRegistry, createToolRegistry } from './registries';
 
 describe('registries', () => {
   it('registers commands', () => {
@@ -13,6 +13,21 @@ describe('registries', () => {
 
     unregister();
     expect(commands.get('hello')).toBeUndefined();
+  });
+
+  it('registers callback actions and handles matching data', async () => {
+    const callbacks = createCallbackActionRegistry();
+    const handler = vi.fn(() => 'ok');
+    const unregister = callbacks.register({ name: 'Model', description: 'choose model', pattern: /^model:\d+$/, handler });
+
+    expect(callbacks.get('model')?.description).toBe('choose model');
+    expect(callbacks.match('model:1')?.name).toBe('model');
+    await expect(callbacks.handle({ data: 'model:1', connector: 'telegram' })).resolves.toEqual({ handled: true, result: 'ok' });
+    expect(handler).toHaveBeenCalledWith(expect.objectContaining({ name: 'model', data: 'model:1', connector: 'telegram' }));
+    await expect(callbacks.handle({ data: 'missing' })).resolves.toEqual({ handled: false });
+
+    unregister();
+    expect(callbacks.get('model')).toBeUndefined();
   });
 
   it('calls tools through tool events', async () => {

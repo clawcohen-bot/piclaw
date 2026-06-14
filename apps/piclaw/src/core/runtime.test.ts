@@ -16,12 +16,14 @@ describe('runtime', () => {
 
     runtime.api.registerCommand({ name: 'hello', description: 'hello', handler: () => 'ok' });
     runtime.api.registerTool({ name: 'tool', description: 'tool', handler: () => 'result' });
+    runtime.api.registerCallbackAction({ name: 'callback', description: 'callback', pattern: /^callback$/, handler: () => 'clicked' });
     runtime.api.registerCronjob({ name: 'job', schedule: '* * * * *', handler: () => undefined });
     runtime.api.registerProvider('provider', { name: 'provider' });
     runtime.api.on('app_start', () => ({ patch: { startedAt: 'changed' } }));
 
     expect(runtime.commands.get('hello')).toBeDefined();
     await expect(runtime.tools.call('tool', {})).resolves.toBe('result');
+    await expect(runtime.callbacks.handle({ data: 'callback' })).resolves.toEqual({ handled: true, result: 'clicked' });
     expect(runtime.cronjobs.get('job')).toBeDefined();
     expect(runtime.providers.get('provider')).toBeDefined();
     await expect(runtime.events.dispatch('app_start', { startedAt: 'now' })).resolves.toMatchObject({

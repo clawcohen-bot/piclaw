@@ -11,6 +11,8 @@ coverage/
 config/piclaw.json
 .data/
 docs/
+!docs/
+!docs/*.md
 .cronjobs/*/logs/
 .cronjobs/*/.env
 .cronjobs/*/.lock

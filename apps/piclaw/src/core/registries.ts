@@ -21,6 +21,30 @@ export type CommandRegistry = {
   list(): PiclawCommand[];
 };
 
+export type CallbackHandlerInput = {
+  name: string;
+  data: string;
+  connector?: string;
+  conversationId?: string;
+  userId?: string;
+  context?: unknown;
+};
+
+export type PiclawCallbackAction = {
+  name: string;
+  description: string;
+  pattern: RegExp;
+  handler: (input: CallbackHandlerInput) => Promise<string | void> | string | void;
+};
+
+export type CallbackActionRegistry = {
+  register(action: PiclawCallbackAction): () => void;
+  get(name: string): PiclawCallbackAction | undefined;
+  list(): PiclawCallbackAction[];
+  match(data: string): PiclawCallbackAction | undefined;
+  handle(input: Omit<CallbackHandlerInput, 'name'>): Promise<{ handled: boolean; result?: string | void }>;
+};
+
 export type PiclawTool = {
   name: string;
   description: string;
@@ -78,6 +102,44 @@ export const createCommandRegistry = (): CommandRegistry => {
     },
     get: (name) => commands.get(normalizeName(name)),
     list: () => [...commands.values()].sort((left, right) => left.name.localeCompare(right.name)),
+  };
+};
+
+export const createCallbackActionRegistry = (): CallbackActionRegistry => {
+  const actions = new Map<string, PiclawCallbackAction>();
+
+  const matchAction = (data: string): PiclawCallbackAction | undefined => {
+    for (const action of actions.values()) {
+      action.pattern.lastIndex = 0;
+      if (action.pattern.test(data)) {
+        return action;
+      }
+    }
+    return undefined;
+  };
+
+  return {
+    register: (action) => {
+      const key = normalizeName(action.name);
+      actions.set(key, { ...action, name: key });
+      return () => {
+        actions.delete(key);
+      };
+    },
+    get: (name) => actions.get(normalizeName(name)),
+    list: () => [...actions.values()].sort((left, right) => left.name.localeCompare(right.name)),
+    match: matchAction,
+    handle: async (input) => {
+      const action = matchAction(input.data);
+      if (action === undefined) {
+        return { handled: false };
+      }
+
+      return {
+        handled: true,
+        result: await action.handler({ ...input, name: action.name }),
+      };
+    },
   };
 };
 

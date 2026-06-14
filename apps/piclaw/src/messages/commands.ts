@@ -13,7 +13,7 @@ export const helpText = [
   '/calendar-connect - connect Google Calendar',
   '/calendar-today - show today calendar events',
   '/calendar-week - show this week calendar events',
-  '/calendar-add title | start ISO | end ISO - create event after confirm',
+  '/calendar-add title | start ISO | end ISO - create event',
   '/usage - show estimated context usage',
   '/new - start fresh context',
   '/status - bot status',

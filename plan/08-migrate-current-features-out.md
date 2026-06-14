@@ -4,9 +4,9 @@ Goal: remove non-core features from Piclaw core after the extension system exist
 
 ## Move out first
 
-- `features/wiki` -> `packages/piclaw-wiki`
-- `features/calendar` -> `packages/piclaw-calendar-google`
-- `features/voice` -> `packages/piclaw-voice`
+- `features/wiki` -> `packages/piclaw-wiki` (package extension now registers wiki commands/tools)
+- `features/calendar` -> `packages/piclaw-calendar-google` (package extension now registers calendar commands/tools)
+- `features/voice` -> `packages/piclaw-voice` (package extension now registers voice tools)
 
 ## Keep temporarily
 
@@ -18,6 +18,7 @@ But new behavior should use:
 - event handlers
 - tools
 - commands
+- callback actions
 - cronjobs
 - package resources
 
@@ -50,6 +51,7 @@ The calendar package should register:
 - calendar tools
 - calendar auth/provider config if needed
 - calendar commands
+- calendar callback actions for confirmation flows
 - calendar skill
 
 Core should not import Google Calendar code.
