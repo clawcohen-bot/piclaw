@@ -1,10 +1,20 @@
 {
   "name": "piclaw-calendar-google",
   "private": true,
-  "keywords": ["piclaw-package"],
+  "keywords": [
+    "piclaw-package"
+  ],
   "piclaw": {
-    "extensions": ["extensions"],
+    "extensions": [
+      "extensions"
+    ],
     "skills": [],
     "prompts": []
+  },
+  "peerDependencies": {
+    "@piclaw/sdk": "*"
+  },
+  "devDependencies": {
+    "@piclaw/sdk": "workspace:*"
   }
 }

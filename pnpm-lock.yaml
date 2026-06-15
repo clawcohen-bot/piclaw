@@ -48,6 +48,26 @@ importers:
 
   apps/piclaw: {}
 
+  packages/piclaw-calendar-google:
+    devDependencies:
+      '@piclaw/sdk':
+        specifier: workspace:*
+        version: link:../piclaw-sdk
+
+  packages/piclaw-sdk: {}
+
+  packages/piclaw-voice:
+    devDependencies:
+      '@piclaw/sdk':
+        specifier: workspace:*
+        version: link:../piclaw-sdk
+
+  packages/piclaw-wiki:
+    devDependencies:
+      '@piclaw/sdk':
+        specifier: workspace:*
+        version: link:../piclaw-sdk
+
 packages:
 
   '@anthropic-ai/sdk@0.91.1':

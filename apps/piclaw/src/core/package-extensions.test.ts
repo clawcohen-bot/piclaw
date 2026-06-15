@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { readFile } from 'node:fs/promises';
-import { resolve } from 'node:path';
+import { readFile, readdir } from 'node:fs/promises';
+import { join, resolve } from 'node:path';
 
 import { parseConfig } from './config';
 import { createPiclawRuntime } from './runtime';
@@ -44,5 +44,18 @@ describe('local Piclaw packages', () => {
     expect(source).not.toContain("../wiki/wiki");
     expect(source).not.toContain("../calendar/google-calendar");
     expect(source).not.toContain("../voice/voice");
+  });
+
+  it('keeps packages behind the public Piclaw SDK boundary', async () => {
+    const packageRoot = resolve(process.cwd(), 'packages');
+    const packageNames = await readdir(packageRoot);
+
+    for (const packageName of packageNames) {
+      const extensionPath = join(packageRoot, packageName, 'extensions', 'index.ts');
+      const source = await readFile(extensionPath, 'utf8').catch(() => '');
+
+      expect(source).not.toContain('apps/piclaw/src');
+      expect(source).not.toContain('../../../apps/');
+    }
   });
 });

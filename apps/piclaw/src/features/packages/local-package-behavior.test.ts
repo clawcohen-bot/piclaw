@@ -5,7 +5,7 @@ import { pathToFileURL } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import type { VoiceConfig } from '../../core/config';
-import { getAppDir, getObsidianVaultDir } from '../../core/storage';
+import { ensureParentDir, getAppDir, getObsidianVaultDir, getPiSdkDir } from '../../core/storage';
 
 type RegisteredItem = {
   name: string;
@@ -30,6 +30,12 @@ const createPackageHarness = (config: Record<string, unknown> = {}) => {
   return {
     piclaw: {
       config,
+      storage: {
+        appDataPath: (path = '') => path.length === 0 ? getAppDir() : join(getAppDir(), path),
+        piclawDataPath: (path = '') => path.length === 0 ? getPiSdkDir() : join(getPiSdkDir(), path),
+        obsidianVaultPath: (path = '') => path.length === 0 ? getObsidianVaultDir() : join(getObsidianVaultDir(), path),
+        ensureParentDir,
+      },
       registerCommand: (command: RegisteredItem) => commands.set(command.name, command),
       registerCallbackAction: (callback: RegisteredItem & { pattern: RegExp }) => callbacks.set(callback.name, callback),
       registerTool: (tool: RegisteredItem) => tools.set(tool.name, tool),

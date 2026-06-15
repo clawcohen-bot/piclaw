@@ -1,3 +1,5 @@
+import { join } from 'node:path';
+
 import type { AppConfig } from './config';
 import { createEventBus, type PiclawEventBus } from './events';
 import {
@@ -12,7 +14,8 @@ import {
   type ProviderRegistry,
   type ToolRegistry,
 } from './registries';
-import type { PiclawExtensionAPI } from './extension-api';
+import type { PiclawExtensionAPI, PiclawStorageAPI } from '@piclaw/sdk';
+import { ensureParentDir, getAppDir, getObsidianVaultDir, getPiSdkDir } from './storage';
 
 export type PiclawRuntime = {
   config: AppConfig;
@@ -25,6 +28,13 @@ export type PiclawRuntime = {
   api: PiclawExtensionAPI;
   logger: Pick<Console, 'error' | 'warn' | 'info'>;
 };
+
+const createStorageAPI = (): PiclawStorageAPI => ({
+  appDataPath: (path = '') => path.length === 0 ? getAppDir() : join(getAppDir(), path),
+  piclawDataPath: (path = '') => path.length === 0 ? getPiSdkDir() : join(getPiSdkDir(), path),
+  obsidianVaultPath: (path = '') => path.length === 0 ? getObsidianVaultDir() : join(getObsidianVaultDir(), path),
+  ensureParentDir,
+});
 
 export const createPiclawRuntime = (
   config: AppConfig,
@@ -51,6 +61,7 @@ export const createPiclawRuntime = (
   runtime.api = {
     config,
     logger,
+    storage: createStorageAPI(),
     on: events.on,
     registerCommand: commands.register,
     registerCallbackAction: callbacks.register,
