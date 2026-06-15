@@ -64,6 +64,7 @@ export const createPiclawRuntime = (
     storage: createStorageAPI(),
     on: events.on,
     registerCommand: commands.register,
+    listCommands: () => commands.list().map(({ name, description }) => ({ name, description })),
     registerCallbackAction: callbacks.register,
     registerTool: tools.register,
     registerCronjob: cronjobs.register,

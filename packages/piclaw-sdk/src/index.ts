@@ -124,6 +124,7 @@ export type PiclawExtensionAPI<TConfig = any> = {
   on<TName extends PiclawEventName>(name: TName, handler: PiclawEventHandler<PiclawEvents[TName]>): () => void;
   registerTool(tool: PiclawTool): () => void;
   registerCommand(command: PiclawCommand): () => void;
+  listCommands(): Array<Pick<PiclawCommand, 'name' | 'description'>>;
   registerCallbackAction(action: PiclawCallbackAction): () => void;
   registerCronjob(cronjob: PiclawCronjob): () => void;
   registerProvider(name: string, provider: PiclawProvider): () => void;

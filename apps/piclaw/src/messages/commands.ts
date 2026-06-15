@@ -1,19 +1,9 @@
-export const helpText = [
-  'Piclaw',
-  '',
-  'Commands:',
+import type { PiclawCommand } from '@piclaw/sdk';
+
+export const coreCommandLines = [
   '/remember <text>',
   '/forget - clear saved long memory',
   '/memory - show long memory and session compact memory',
-  '/wiki - show Obsidian wiki status',
-  '/wiki-add <text> - add note to Obsidian wiki',
-  '/wiki-search <query> - search Obsidian wiki',
-  '/wiki-open <query> - show best wiki page path',
-  '/calendar - show Google Calendar status',
-  '/calendar-connect - connect Google Calendar',
-  '/calendar-today - show today calendar events',
-  '/calendar-week - show this week calendar events',
-  '/calendar-add title | start ISO | end ISO - create event',
   '/usage - show estimated context usage',
   '/new - start fresh context',
   '/status - bot status',
@@ -29,9 +19,37 @@ export const helpText = [
   '/mode ask - read-only',
   '/reload - restart bot and load new code/config',
   '/cancel - cancel active task',
-  'Voice message - transcribe with Whisper and run as task',
   '/server-status',
   '/server-services',
   '/server-logs <name>',
   '/server-restart <service>',
-].join('\n');
+];
+
+export const coreCommandNames = new Set([
+  'start',
+  ...coreCommandLines
+    .filter((line) => line.startsWith('/'))
+    .map((line) => line.slice(1).split(/\s/, 1)[0]),
+]);
+
+const formatExtensionCommand = (command: Pick<PiclawCommand, 'name' | 'description'>): string => (
+  command.description.length === 0 ? `/${command.name}` : `/${command.name} - ${command.description}`
+);
+
+export const buildHelpText = (commands: Pick<PiclawCommand, 'name' | 'description'>[] = []): string => {
+  const extensionCommandLines = commands
+    .filter((command) => !coreCommandNames.has(command.name))
+    .map(formatExtensionCommand);
+
+  return [
+    'Piclaw',
+    '',
+    'Commands:',
+    ...coreCommandLines,
+    '',
+    'Extension commands:',
+    ...(extensionCommandLines.length === 0 ? ['No extension commands loaded.'] : extensionCommandLines),
+  ].join('\n');
+};
+
+export const helpText = buildHelpText();

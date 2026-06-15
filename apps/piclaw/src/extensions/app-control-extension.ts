@@ -6,7 +6,7 @@ import { getConfigPath } from '../core/config';
 import type { PiclawExtensionAPI } from '../core/extension-api';
 import { formatPackagesList } from '../features/packages/packages';
 import { formatSkillsStatusList, formatSkillsTelegramHtml } from '../features/skills/skills';
-import { helpText } from '../messages/commands';
+import { buildHelpText } from '../messages/commands';
 import { truncateText } from '../messages/text';
 
 type AgentRunner = ReturnType<typeof createAgentRunner>;
@@ -47,7 +47,7 @@ export const registerAppControlExtension = (piclaw: PiclawExtensionAPI, options:
   piclaw.registerCommand({
     name: 'start',
     description: 'Show Piclaw help and runtime paths.',
-    handler: () => `${helpText}\n\nRoot: ${piclaw.config.rootPath}\nConfig: ${getConfigPath()}`,
+    handler: () => `${buildHelpText(piclaw.listCommands())}\n\nRoot: ${piclaw.config.rootPath}\nConfig: ${getConfigPath()}`,
   });
 
   piclaw.registerCommand({
