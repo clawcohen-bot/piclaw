@@ -50,6 +50,31 @@ const getCallbackQueryData = (ctx: Context): string | undefined => {
   return callbackQuery.data;
 };
 
+export const withTelegramContextValue = <TContext extends Context, TKey extends string>(
+  ctx: TContext,
+  key: TKey,
+  value: string,
+): TContext & Record<TKey, string> => {
+  const context = new Proxy(ctx, {
+    get(target, property, receiver) {
+      if (property === key) {
+        return value;
+      }
+
+      return Reflect.get(target, property, receiver);
+    },
+    set(target, property, newValue, receiver) {
+      if (property === key) {
+        return true;
+      }
+
+      return Reflect.set(target, property, newValue, receiver);
+    },
+  });
+
+  return context as TContext & Record<TKey, string>;
+};
+
 const startTypingIndicator = (ctx: TypingContext): (() => void) => {
   let stopped = false;
 
@@ -204,7 +229,7 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
       connector: 'telegram',
       conversationId: chatId === undefined ? undefined : String(chatId),
       userId: ctx.from?.id === undefined ? undefined : String(ctx.from.id),
-      context: Object.assign(ctx, { data }),
+      context: withTelegramContextValue(ctx, 'data', data),
     });
 
     if (!result.handled) {
@@ -265,7 +290,7 @@ export const registerTelegramRuntimeHandlers = (bot: Telegraf<Context>, config: 
         rawText: text,
         conversationId: String(chatId),
         userId: ctx.from?.id === undefined ? undefined : String(ctx.from.id),
-        context: Object.assign(ctx, { text }),
+        context: withTelegramContextValue(ctx, 'text', text),
       });
       if (typeof result === 'string' && result.length > 0) {
         await ctx.reply(result);
